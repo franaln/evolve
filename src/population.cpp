@@ -18,14 +18,13 @@ Population::Population(long size, float p_crossover, float p_mutation) :
 {
 
   // setup random generator
-  //m_rnd = new Random();
   init_random();
 
   // observables
   //int n_vars = 1;
 
-  //Variable *var = new Variable("jet_n", "i", 0, 10, 1);
-
+  Variable *var1 = new Variable("jet_n", "i", 0, 10, 1);
+  Variable *var2 = new Variable("rt2", "f", 0.0, 1.0, 0.1);
 
   //-- create initial population (generation 0)
   m_generation = 0;
@@ -33,23 +32,16 @@ Population::Population(long size, float p_crossover, float p_mutation) :
 
   // fill each individual randomly
   for(int i=0; i<m_size; i++){
-
     m_population[i] = new Individual(1, 1);
-
-    //m_population[i]->set_cut_int(0, m_rnd->get_int(0, 10));
-    //m_population[i]->set_cut_float(0, m_rnd->get_float(0.0, 1.0));
     m_population[i]->set_cut_int(0, get_random_int(0, 10));
     m_population[i]->set_cut_float(0, get_random_float(0.0, 1.0));
-
   }
 
   print();
-
 }
 
 Population::~Population()
 {
-  //delete m_rnd;
   for(auto& ind : m_population){
     delete ind;
   }
@@ -209,9 +201,12 @@ void Population::crossover(Individual *p1, Individual *p2, pop_vector &pop)
 void Population::mutate(pop_vector &v)
 {
   for(auto &indv : v){
-    if(get_random_prob() < m_prob_mutation)
+    if(get_random_prob() < m_prob_mutation) {
       //indv->mutate();
       std::cout << "mutate" << std::endl;     //indv->mutate();
+      int index = get_random_int(1, 2);
+      std::cout << index << std::endl;
+    }
 
   }
 

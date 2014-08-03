@@ -8,13 +8,6 @@
 #include <vector> // std::vector
 
 class Individual;
-//class Random;
-
-/* struct Individual */
-/* { */
-/*   std::string str; */
-/*   double fitness; */
-/* }; */
 
 typedef std::vector<Individual*> pop_vector;
 
@@ -36,10 +29,7 @@ class Population {
 
   double m_total_fitness;
 
-  //std::vector<Individual*> individuals;
   pop_vector m_population;
-
-  //Random *m_rnd;
 
   void select_parents();
   int roulette();

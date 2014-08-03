@@ -4,6 +4,7 @@
 #include <string>
 
 #include "individual.h"
+#include "random.h"
 
 Individual::Individual(int size_int, int size_float)
 {
@@ -18,15 +19,14 @@ Individual::~Individual()
 
 // void Individual::mutate()
 // {
-//   // get random number between 0 and size
-//   //self.chromosome[random.choice(range(4))] = random.choice([0,1])
-
-//   // flip gen
-//   //genes[random].flip();
+  // get random number between 0 and size
+  //   //self.chromosome[random.choice(range(4))] = random.choice([0,1])
 
 
-//   return;
-// }
+
+  //   // flip gen
+  //   //genes[random].flip();
+//}
 
 Individual* Individual::copy()
 {

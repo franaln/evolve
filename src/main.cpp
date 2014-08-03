@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
   Population pop(6, 0.9, 0.1);
 
-  pop.evolve();
+    pop.evolve();
 
   return 0;
 }

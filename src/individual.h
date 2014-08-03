@@ -45,6 +45,9 @@ class Individual {
 
   void print();
 
+  //void mutate();
+
+
   friend bool operator< (const Individual& lhs, const Individual& rhs){ return lhs.m_fitness < rhs.m_fitness; }
   friend bool operator> (const Individual& lhs, const Individual& rhs){ return rhs < lhs; }
   /* inline bool operator<=(const Individual& lhs, const Individual& rhs){ return !(lhs > rhs); } */
