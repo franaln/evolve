@@ -1,6 +1,6 @@
 # evolve makefile
 
-CXX      := g++
+CXX		 := g++
 CXXFLAGS := -g -Wall -std=c++11
 
 #CXX47 := $(shell echo `g++ -dumpversion`'>'4.7 | bc -l)
@@ -11,7 +11,7 @@ CXXFLAGS := -g -Wall -std=c++11
 #	CXXFLAGS += -std=c+0x
 # endif
 
-# ROOTLIBS  := $(shell root-config --libs)
+# ROOTLIBS	:= $(shell root-config --libs)
 # ROOTFLAGS := $(shell root-config --cflags)
 
 LIBS := -lconfig++
@@ -19,10 +19,10 @@ LIBS := -lconfig++
 OBJDIR := obj
 SRCDIR := src
 
-_OBJ   := main.o ga.o population.o random.o variable.o chromosome.o
+_OBJ   := main.o population.o individual.o random.o variable.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
-TARGET    := evolve
+TARGET := evolve
 
 #------------------------------------------------------------------------------
 

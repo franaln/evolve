@@ -1,21 +1,13 @@
-/** @file random.h
- */
-
 #ifndef RANDOM_H
 #define RANDOM_H
 
 #include <random> // random generators
 
-class Random {
+typedef std::mt19937 generator_t;
 
- public:
-  Random(int seed=-1);
+void init_random();
+int get_random_int(int, int);
+double get_random_float(double, double);
+double get_random_prob();
 
-  typedef std::mt19937 generator_t;
-
-  int next(int lower, int upper);
-
- private:
-  generator_t rg;
-};
 #endif
