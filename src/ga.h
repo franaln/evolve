@@ -1,8 +1,8 @@
-/** @file population.h
+/** @file ga.h
  */
 
-#ifndef POPULATION_H
-#define POPULATION_H
+#ifndef GA_H
+#define GA_H
 
 #include <string> // std::string
 #include <vector> // std::vector
@@ -11,18 +11,17 @@ class Individual;
 
 typedef std::vector<Individual*> pop_vector;
 
-class Population {
+class GA {
 
  public:
-  Population(long, float, float);
-  ~Population();
+  GA();
+  ~GA();
 
   void evolve();
-  void step();
 
  private:
-  long m_size;
-  long m_generation;
+  unsigned long m_population_size;
+  unsigned long m_generation;
   float m_prob_crossover;
   float m_prob_mutation;
 
@@ -31,6 +30,7 @@ class Population {
 
   pop_vector m_population;
 
+  void step();
   void select_parents();
   int roulette();
   void crossover(Individual*, Individual*, pop_vector&);

@@ -19,7 +19,7 @@ LIBS := -lconfig++
 OBJDIR := obj
 SRCDIR := src
 
-_OBJ   := main.o population.o individual.o random.o variable.o
+_OBJ   := main.o ga.o individual.o random.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 TARGET := evolve

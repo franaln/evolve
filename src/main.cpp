@@ -17,8 +17,7 @@
 //#include <libconfig.hh>
 //using namespace libconfig;
 
-#include "population.h"
-//#include "ga.h"
+#include "ga.h"
 
 
 /** @todo
@@ -36,9 +35,9 @@ int main(int argc, char *argv[])
   //ga.run();
 
 
-  Population pop(6, 0.9, 0.1);
+  GA ga;
 
-    pop.evolve();
+  ga.evolve();
 
   return 0;
 }
