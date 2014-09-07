@@ -17,7 +17,7 @@ ROOTFLAGS := $(shell root-config --cflags)
 OBJDIR := obj
 SRCDIR := src
 
-_OBJ   := main.o ga.o individual.o random.o
+_OBJ   := main.o ga.o individual.o random.o significance.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 TARGET := evolve

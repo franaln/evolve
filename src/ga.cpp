@@ -11,6 +11,7 @@
 #include "ga.h"
 #include "individual.h"
 #include "random.h"
+#include "significance.h"
 
 #define debug(x) std::cout << "debug: " << x << std::endl;
 
@@ -187,11 +188,11 @@ float GA::evaluate_fitness(Individual* indv)
     if(i<m_nvariables-1) selection += " && ";
   }
 
-  // float s = m_signal_chain->GetEntries(selection);
-  // float b = m_background_chain->GetEntries(selection);
-  // float significance = get_significance(s, b);
+  double s = m_signal_chain->GetEntries(selection);
+  double b = m_background_chain->GetEntries(selection);
+  double significance = get_significance(s, b);
 
-  return 1;
+  return significance;
 }
 
 
