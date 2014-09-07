@@ -31,7 +31,11 @@ $(TARGET): $(OBJDIR) $(OBJ)
 	@$(CXX) $(CXXFLAGS) $(ROOTLIBS) -o $@ $(OBJ)
 	@echo "$@ done."
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
+$(OBJDIR)/main.o: $(SRCDIR)/main.cpp
+	@echo "Compiling $<"
+	$(CXX) $(CXXFLAGS) $(ROOTFLAGS) -c -o $@ $<
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(SRCDIR)/%.h
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) $(ROOTFLAGS) -c -o $@ $<
 
