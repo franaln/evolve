@@ -20,7 +20,7 @@ Individual* Individual::copy()
 void Individual::print()
 {
   for(auto &cut : m_cuts)
-    std::cout << cut << " ";
+    std::cout << cut << " | ";
 
   std::cout << std::endl;
 }

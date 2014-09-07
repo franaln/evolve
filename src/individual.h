@@ -13,12 +13,12 @@ class Individual {
   Individual() {};
   ~Individual() {};
 
-  void add_cut(float v) { m_cuts.push_back(v); }
-  float get_cut(int idx) { return m_cuts[idx]; }
-  void set_cut(int idx,float v) { m_cuts[idx] = v; }
+  void add_cut(double v) { m_cuts.push_back(v); }
+  double get_cut(int idx) { return m_cuts[idx]; }
+  void set_cut(int idx, double v) { m_cuts[idx] = v; }
 
-  void set_fitness(float f) { m_fitness = f; };
-  float get_fitness() { return m_fitness; };
+  void set_fitness(double f) { m_fitness = f; };
+  double get_fitness() { return m_fitness; };
 
   Individual* copy();
 
@@ -30,7 +30,7 @@ class Individual {
   friend bool operator>=(const Individual& lhs, const Individual& rhs){ return !(lhs < rhs); }
 
  private:
-  std::vector<float> m_cuts;
+  std::vector<double> m_cuts;
   double m_fitness;
 };
 

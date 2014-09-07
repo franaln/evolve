@@ -18,7 +18,7 @@ typedef std::vector<Individual*> pop_vector;
 struct Variable {
   std::string name;
   std::string type;
-  float min, max, step;
+  double min, max, step;
 };
 
 class GA {
@@ -32,9 +32,9 @@ class GA {
  private:
   unsigned long m_population_size;
   unsigned long m_generation;
-  float m_prob_crossover;
-  float m_prob_mutation;
-  float m_elitism_rate;
+  double m_prob_crossover;
+  double m_prob_mutation;
+  double m_elitism_rate;
 
   double m_total_fitness;
 
@@ -55,9 +55,9 @@ class GA {
   void print();
   void read_configuration(TString);
 
-  float evaluate_fitness(Individual*);
+  double evaluate_fitness(Individual*);
 
-  float get_random_cut(const Variable &var);
+  double get_random_cut(const Variable &var);
 
 
   TString m_signal_file, m_background_file;
