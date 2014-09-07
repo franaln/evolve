@@ -5,52 +5,40 @@
 #include <iostream>
 #include <algorithm>
 
-#include "config.h"
+#include <TEnv.h>
+#include <TChain.h>
+
 #include "ga.h"
 #include "individual.h"
 #include "random.h"
 
-// struct ObservableInt {
-//   std::string name;
-//   int min;
-//   int max;
-//   int step;
-// };
+#define debug(x) std::cout << "debug: " << x << std::endl;
 
-// struct ObservableFloat {
-//   std::string name;
-//   double min;
-//   double max;
-//   double step;
-// };
-
-
-GA::GA() :
-  m_population_size(POPULATION_SIZE),
-  m_prob_crossover(PROB_CROSSOVER),
-  m_prob_mutation(PROB_MUTATION)
+GA::GA(std::string configfile)
 {
+  read_configuration(configfile);
 
-  //  std::cout << OBS1 << std::endl;
-
-  // setup random generator
   init_random();
 
-  // observables
-  //int n_vars = 1;
+  // chains
+  m_signal_chain = new TChain(m_signal_treename);
+  m_signal_chain->Add(m_signal_file);
 
-  // Variable *var1 = new Variable("jet_n", "i", 0, 10, 1);
-  // Variable *var2 = new Variable("rt2", "f", 0.0, 1.0, 0.1);
+  m_background_chain = new TChain(m_background_treename);
+  m_background_chain->Add(m_background_file);
 
-  //-- create initial population (generation 0)
+
+  // create initial population (generation 0)
   m_generation = 0;
   m_population.resize(m_population_size);
 
   // fill each individual randomly
-  for(unsigned int i=0; i<m_population_size; i++){
-    m_population[i] = new Individual(1, 1);
-    m_population[i]->set_cut_int(0, get_random_int(0, 10));
-    m_population[i]->set_cut_float(0, get_random_float(0.0, 1.0));
+  for (unsigned int i=0; i<m_population_size; i++){
+    m_population[i] = new Individual();
+
+    for (auto &var : m_variables) {
+      m_population[i]->add_cut(get_random_cut(var));
+    }
   }
 
   print();
@@ -61,12 +49,15 @@ GA::~GA()
   for(auto& ind : m_population){
     delete ind;
   }
+
+  delete m_signal_chain;
+  delete m_background_chain;
 }
 
 void GA::evolve()
 {
   // loop step until condition is satisfied
-  for(int i=0; i<25; i++)
+  for (unsigned int i=0; i<10; i++)
     step();
 
 }
@@ -78,30 +69,27 @@ void GA::step()
   children.reserve(m_population_size);
 
   // 1. evaluate fitness
-  for(auto& indv : m_population){
-    indv->set_fitness(indv->cuts_int[0]+indv->cuts_float[0]);
-  }
-
   m_total_fitness = 0.0;
+  float fitness;
   for(auto& indv : m_population){
-    m_total_fitness += indv->get_fitness();
+    fitness = evaluate_fitness(indv);
+    indv->set_fitness(fitness);
+    m_total_fitness += fitness;
   }
 
   // 2. sort individuals
-  std::sort(m_population.begin(), m_population.end()); //, sort_by_fitness);
+  std::sort(m_population.begin(), m_population.end());
   std::reverse(m_population.begin(), m_population.end());
 
   // 3. elitism
-  unsigned int elite_size = m_population_size * ELITISM_RATE;
+  unsigned int elite_size = m_population_size * m_elitism_rate;
 
-  for(unsigned int i=0; i< elite_size; i++){
+  for (unsigned int i=0; i<elite_size; i++) {
     children.push_back(m_population[i]->copy());
   }
 
-
-
-  // 4.
-  while(children.size() < (m_population_size - elite_size)){
+  // 4. crossover
+  while (children.size() < (m_population_size - elite_size)) {
 
     //int tsize = temp_pop.size();
 
@@ -119,14 +107,14 @@ void GA::step()
 
   }
 
-  // 3. mutation
+  // 5. mutation
   mutate(children);
 
-  // 4. update population
+  // 6. update population
   update(children);
   m_generation++;
 
-  // 5. log, save generation
+  // 7. log, save generation
   print();
 }
 
@@ -164,15 +152,12 @@ void GA::crossover(Individual *p1, Individual *p2, pop_vector &v)
 
 void GA::mutate(pop_vector &v)
 {
-  //for(auto &indv : v){
-  //if(get_random_prob() < m_prob_mutation) {
-      //indv->mutate();
-      //std::cout << "mutate" << std::endl;     //indv->mutate();
-      //int index = get_random_int(1, 2);
-      //std::cout << index << std::endl;
-  //}
-
-  //}
+  for (auto &indv : v) {
+    if (get_random_prob() < m_prob_mutation) {
+      int idx = get_random_int(0, m_nvariables-1);
+      indv->set_cut(idx, get_random_cut(m_variables[idx]));
+    }
+  }
 
   return;
 }
@@ -180,14 +165,6 @@ void GA::mutate(pop_vector &v)
 void GA::update(pop_vector &v)
 {
   m_population.swap(v);
-
-  // for child in self.children:
-  //           child.evaluate()
-  //       self.children.sort()
-  //       nroReemplazo = int(self.reemp * self.size)
-  //       for j in range(nroReemplazo, self.size):
-  //           self.population[j] = self.children[j - nroReemplazo]
-  //       self.population.sort()
 }
 
 void GA::print()
@@ -199,54 +176,71 @@ void GA::print()
   std::cout << "---" << std::endl;
 }
 
-// Individual Population::choice(pop_vector v)
-// {
-//   int idx = m_rnd->rnd_int(0, v.size());
-//   return v[idx];
-// }
+float GA::evaluate_fitness(Individual* indv)
+{
+  TString selection;
 
-// int  Population::get_parent_index()
-// {
-//   // choose k (the tournament size) individuals from the population at random
-//   pop_vector competitors(3);
+  for (unsigned int i=0; i<m_nvariables; i++) {
+    selection += m_variables[i].name;
+    selection += m_variables[i].type;
+    selection += Form("%f", indv->get_cut(i));
+    if(i<m_nvariables-1) selection += " && ";
+  }
 
-//   for(int i=0; i<3; i++){
+  // float s = m_signal_chain->GetEntries(selection);
+  // float b = m_background_chain->GetEntries(selection);
+  // float significance = get_significance(s, b);
 
-//     indv = choice(population);
-
-//     competitors[i] = indv.copy();
-//   }
-
-//   std::sort(competitors.begin(), competitors.end(), sort_by_fitness);
-
-//   rnd.rnd_float(0.0, 1.0);
-
-//   // choose the best individual from pool/tournament with probability p
-//   // choose the second best individual with probability p*(1-p)
-//   // choose the third best individual with probability p*((1-p)^2)
+  return 1;
+}
 
 
-//     // def torneo(self, size = 3, goliat = 0.9):
-//     //     competidores = [random.choice(self.population) for i in range(size)]
-//     //     competidores.sort()
-//     //     if random.random() < goliat:
-//     //         return competidores[0]
-//     //     else:
-//     //         return random.choice(competidores[1:])
+void GA::read_configuration(TString configfile)
+{
+  TEnv env(configfile.Data());
 
-// }
+  // GA parameters
+  m_population_size = env.GetValue("GA.PopulationSize", 0);
+  m_prob_mutation = env.GetValue("GA.ProbMutation", 0.0);
+  m_prob_crossover = env.GetValue("GA.ProbCrossOver", 0.0);
+  m_elitism_rate = env.GetValue("GA.RateElitism", 0.0);
 
-// void Population::sort_by_fitness(Individual* a, Individual* b)
-// {
-//   return (a->get_fitness() < b->get_fitness());
-// }
+  std::cout << m_population_size << std::endl;
+
+  // Signal
+  m_signal_file = env.GetValue("Signal.File", "");
+  m_signal_treename = env.GetValue("Signal.TreeName", "");
+
+  // Background
+  m_background_file = env.GetValue("Background.File", "");
+  m_background_treename = env.GetValue("Background.TreeName", "");
+
+  // Variables
+  m_nvariables = env.GetValue("Variable.N", 0);
+
+  for (unsigned int i=0; i<m_nvariables; i++) {
+    TString tmp = Form("Variable%i", i+1);
+
+    Variable var;
+    var.name = env.GetValue(tmp+".Name", "");
+    var.type = env.GetValue(tmp+".Type", ">");
+    var.min  = env.GetValue(tmp+".Min", 0.0);
+    var.max  = env.GetValue(tmp+".Max", 0.0);
+    var.step = env.GetValue(tmp+".Step", 0.0);
+
+    m_variables.push_back(var);
+  }
+
+  // Significance definition
+  m_significance_def = env.GetValue("Significance", 1);
+}
 
 
-// void Population::select_parents()
-// {
-//   // vector<Chromosome*> parents;
+float GA::get_random_cut(const Variable &var)
+{
+  int n = (var.max-var.min)/var.step;
 
-//   // while (parents.size() < size) {
-//   //   parents.push_back(torneooo);
-//   // }
-// }
+  int rnd = get_random_int(0, n);
+
+  return (var.min + rnd * var.step);
+}

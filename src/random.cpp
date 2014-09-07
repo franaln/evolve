@@ -21,13 +21,13 @@ int get_random_int(int lower, int upper)
   return distribution(generator);
 }
 
-double get_random_float(double lower, double upper)
+float get_random_float(float lower, float upper)
 {
   std::uniform_real_distribution<double> distribution(lower, upper);
   return distribution(generator);
 }
 
-double get_random_prob()
+float get_random_prob()
 {
   return get_random_float(0.0, 1.0);
 }

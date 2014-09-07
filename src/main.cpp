@@ -11,14 +11,7 @@
     @date 2013.11.17
 */
 
-
-//Config *config;
-
-//#include <libconfig.hh>
-//using namespace libconfig;
-
 #include "ga.h"
-
 
 /** @todo
     - log
@@ -26,17 +19,9 @@
     - fitness vs time plot
     - termination condition: optimal_value, max_generation
 */
-
 int main(int argc, char *argv[])
 {
-  //config = new Config(argv[1])
-
-  //  GA ga;
-  //ga.run();
-
-
-  GA ga;
-
+  GA ga("example.conf");
   ga.evolve();
 
   return 0;

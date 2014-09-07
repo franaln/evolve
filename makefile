@@ -11,10 +11,8 @@ CXXFLAGS := -g -Wall -std=c++11
 #	CXXFLAGS += -std=c+0x
 # endif
 
-# ROOTLIBS	:= $(shell root-config --libs)
-# ROOTFLAGS := $(shell root-config --cflags)
-
-LIBS := -lconfig++
+ROOTLIBS  := $(shell root-config --libs)
+ROOTFLAGS := $(shell root-config --cflags)
 
 OBJDIR := obj
 SRCDIR := src
@@ -30,12 +28,12 @@ all: $(TARGET)
 
 $(TARGET): $(OBJDIR) $(OBJ)
 	@echo "Linking $@"
-	@$(CXX) $(CXXFLAGS) -o $@ $(OBJ)
+	@$(CXX) $(CXXFLAGS) $(ROOTLIBS) -o $@ $(OBJ)
 	@echo "$@ done."
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@echo "Compiling $<"
-	@$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(ROOTFLAGS) -c -o $@ $<
 
 $(OBJDIR):
 	@mkdir -p $(OBJDIR)
