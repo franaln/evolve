@@ -20,7 +20,7 @@ double get_significance(double s, double b)
 
   double significance = TMath::Sqrt(temp);
 
-  if (significance > 0.0)
+  if (significance > 0.0 && !std::isinf(significance))
     return significance;
   else
     return 0.0;
