@@ -5,6 +5,12 @@
 
 #include "individual.h"
 
+Individual::Individual()
+{
+  m_fitness = 0;
+  m_cuts.clear();
+}
+
 Individual* Individual::copy()
 {
   Individual *twin = new Individual();
@@ -22,5 +28,5 @@ void Individual::print()
   for(auto &cut : m_cuts)
     std::cout << cut << " | ";
 
-  std::cout << std::endl;
+  std::cout << " sig= " << m_fitness << std::endl;
 }

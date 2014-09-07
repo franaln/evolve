@@ -10,7 +10,7 @@
 class Individual {
 
  public:
-  Individual() {};
+  Individual();
   ~Individual() {};
 
   void add_cut(double v) { m_cuts.push_back(v); }

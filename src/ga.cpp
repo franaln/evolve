@@ -41,7 +41,6 @@ GA::GA(std::string configfile)
     }
   }
 
-  print();
 }
 
 GA::~GA()
@@ -115,6 +114,7 @@ void GA::step()
     indv->set_fitness(fitness);
     m_total_fitness += fitness;
   }
+  print();
 
   // 2. sort individuals
   std::sort(m_population.begin(), m_population.end());
@@ -147,7 +147,7 @@ void GA::step()
   m_generation++;
 
   // 7. log, save generation
-  print();
+  //print();
 }
 
 int GA::roulette()
@@ -225,7 +225,7 @@ double GA::evaluate_fitness(Individual* indv)
   double s = m_signal_chain->GetEntries(selection);
   double b = m_background_chain->GetEntries(selection);
   double significance = get_significance(s, b);
-
+  debug(significance);
   return significance;
 }
 
