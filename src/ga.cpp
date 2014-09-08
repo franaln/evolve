@@ -256,6 +256,15 @@ double GA::evaluate_fitness(Individual* indv)
 
   double significance = get_significance(s, b);
 
+
+  Double_t bins[4];
+  for (unsigned int i=0; i<m_nvariables; i++) {
+    bins[i] = indv->get_cut(i);
+  }
+  Long64_t bin = m_hist_sig->GetBin(bins);
+
+  m_hist_sig->SetBinContent(bin, significance);
+
   return significance;
 }
 
