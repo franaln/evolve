@@ -7,7 +7,6 @@
 
 #include <TEnv.h>
 #include <TChain.h>
-#include <THnSparse.h>
 
 #include "ga.h"
 #include "individual.h"
@@ -42,9 +41,9 @@ GA::GA(std::string configfile)
     }
   }
 
-  Int_t bins[4]; // = {10, 20};
-  Double_t xmin[4]; // = {0., -5.};
-  Double_t xmax[4]; // = {10., 5.};
+  Int_t bins[4];
+  Double_t xmin[4];
+  Double_t xmax[4];
 
   for (unsigned int i=0; i<m_nvariables; i++) {
     bins[i] = (m_variables[i].max - m_variables[i].min)/m_variables[i].step;
@@ -256,12 +255,7 @@ double GA::evaluate_fitness(Individual* indv)
 
   double significance = get_significance(s, b);
 
-
-  Double_t bins[4];
-  for (unsigned int i=0; i<m_nvariables; i++) {
-    bins[i] = indv->get_cut(i);
-  }
-  Long64_t bin = m_hist_sig->GetBin(bins);
+  Long64_t bin = m_hist_sig->GetBin(indv->get_cuts());
 
   m_hist_sig->SetBinContent(bin, significance);
 

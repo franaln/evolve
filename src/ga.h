@@ -8,9 +8,9 @@
 #include <vector> // std::vector
 
 #include <TString.h>
+#include <THnSparse.h>
 
 class TChain;
-//class THnSparseD;
 
 class Individual;
 

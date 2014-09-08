@@ -35,3 +35,13 @@ void Individual::print()
 
   std::cout << " sig= " << m_fitness << std::endl;
 }
+
+double* Individual::get_cuts()
+{
+  double *bins = new double[4];
+  for (unsigned int i=0; i<4; i++) {
+    bins[i] = m_cuts[i];
+  }
+
+  return bins;
+}
