@@ -40,7 +40,7 @@ class GA {
   double m_total_fitness;
 
   int m_significance_def;
-  unsigned int  m_nvariables;
+  unsigned int  m_nvars;
 
   std::vector<Variable> m_variables;
 
@@ -68,7 +68,7 @@ class GA {
 
   TString m_weight;
 
-  THnSparseD *m_hist_sig;
+  THnSparseD *m_hist_s, *m_hist_b, *m_hist_sig;
 
 };
 #endif

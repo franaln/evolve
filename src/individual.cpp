@@ -38,10 +38,10 @@ void Individual::print()
 
 double* Individual::get_cuts()
 {
-  double *bins = new double[4];
-  for (unsigned int i=0; i<4; i++) {
-    bins[i] = m_cuts[i];
+  double *cuts = new double[m_cuts.size()];
+  for (unsigned int i=0; i<m_cuts.size(); i++) {
+    cuts[i] = m_cuts[i];
   }
 
-  return bins;
+  return cuts;
 }

@@ -7,6 +7,7 @@
 
 #include <TEnv.h>
 #include <TChain.h>
+#include <TFile.h>
 
 #include "ga.h"
 #include "individual.h"
@@ -41,17 +42,20 @@ GA::GA(std::string configfile)
     }
   }
 
-  Int_t bins[4];
-  Double_t xmin[4];
-  Double_t xmax[4];
+  // histograms
+  Int_t bins[m_nvars];
+  Double_t xmin[m_nvars];
+  Double_t xmax[m_nvars];
 
-  for (unsigned int i=0; i<m_nvariables; i++) {
+  for (unsigned int i=0; i<m_nvars; i++) {
     bins[i] = (m_variables[i].max - m_variables[i].min)/m_variables[i].step;
     xmin[i] = m_variables[i].min;
     xmax[i] = m_variables[i].max;
   }
 
-  m_hist_sig = new THnSparseD("hist_sig", "Significance", m_nvariables, bins, xmin, xmax);
+  m_hist_s   = new THnSparseD("hist_s", "Signal", m_nvars, bins, xmin, xmax);
+  m_hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
+  m_hist_sig = new THnSparseD("hist_sig", "Significance", m_nvars, bins, xmin, xmax);
 
 }
 
@@ -63,6 +67,10 @@ GA::~GA()
 
   delete m_signal_chain;
   delete m_background_chain;
+
+  TFile f("test.root", "create");
+  m_hist_sig->Write("significance");
+  f.Close();
 }
 
 void GA::read_configuration(TString configfile)
@@ -84,9 +92,9 @@ void GA::read_configuration(TString configfile)
   m_background_treename = env.GetValue("Background.TreeName", "");
 
   // Variables
-  m_nvariables = env.GetValue("NVariables", 0);
+  m_nvars = env.GetValue("NVariables", 0);
 
-  for (unsigned int i=0; i<m_nvariables; i++) {
+  for (unsigned int i=0; i<m_nvars; i++) {
     TString tmp = Form("Variable%i", i+1);
 
     Variable var;
@@ -130,7 +138,6 @@ void GA::step()
 
   // 2. sort individuals
   std::sort(m_population.begin(), m_population.end(), sort_fitness);
-  //std::reverse(m_population.begin(), m_population.end());
 
   debug("---")
   m_population[0]->print();
@@ -151,8 +158,7 @@ void GA::step()
     int p2 = roulette();
 
     // crossover parents
-    crossover(m_population[p1], m_population[p2],
-              children);
+    crossover(m_population[p1], m_population[p2], children);
   }
 
   // 5. mutation
@@ -185,7 +191,7 @@ void GA::crossover(Individual *p1, Individual *p2, pop_vector &v)
   // one point crossover
 
   if (get_random_prob() < m_prob_crossover) {
-    unsigned int gi = get_random_int(0, m_nvariables-1);
+    unsigned int gi = get_random_int(0, m_nvars-1);
 
     Individual *c1 = new Individual();
     Individual *c2 = new Individual();
@@ -195,7 +201,7 @@ void GA::crossover(Individual *p1, Individual *p2, pop_vector &v)
       c2->add_cut(p2->get_cut(i));
     }
 
-    for (unsigned int i=gi; i<m_nvariables; i++) {
+    for (unsigned int i=gi; i<m_nvars; i++) {
       c1->add_cut(p2->get_cut(i));
       c2->add_cut(p1->get_cut(i));
     }
@@ -214,7 +220,7 @@ void GA::mutate(pop_vector &v)
 {
   for (auto &indv : v) {
     if (get_random_prob() < m_prob_mutation) {
-      int idx = get_random_int(0, m_nvariables-1);
+      int idx = get_random_int(0, m_nvars-1);
       indv->set_cut(idx, get_random_cut(m_variables[idx]));
     }
   }
@@ -230,11 +236,11 @@ void GA::update(pop_vector &v)
 TString GA::get_selection(Individual *indv)
 {
   TString selection;
-  for (unsigned int i=0; i<m_nvariables; i++) {
+  for (unsigned int i=0; i<m_nvars; i++) {
     selection += m_variables[i].name;
     selection += m_variables[i].type;
     selection += Form("%f", indv->get_cut(i));
-    if(i<m_nvariables-1) selection += " && ";
+    if(i<m_nvars-1) selection += " && ";
   }
 
   if (!m_weight.IsNull()) {
@@ -255,9 +261,10 @@ double GA::evaluate_fitness(Individual* indv)
 
   double significance = get_significance(s, b);
 
-  Long64_t bin = m_hist_sig->GetBin(indv->get_cuts());
-
-  m_hist_sig->SetBinContent(bin, significance);
+  double* cuts = indv->get_cuts();
+  m_hist_s->SetBinContent(m_hist_s->GetBin(cuts), s);
+  m_hist_b->SetBinContent(m_hist_b->GetBin(cuts), b);
+  m_hist_sig->SetBinContent(m_hist_sig->GetBin(cuts), significance);
 
   return significance;
 }
@@ -276,6 +283,6 @@ void GA::print()
   std::cout << "--- Generation " << m_generation << std::endl;
   for(const auto &indv : m_population){
    indv->print();
- }
+  }
   std::cout << "---" << std::endl;
 }
