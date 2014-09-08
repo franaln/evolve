@@ -10,6 +10,7 @@
 #include <TString.h>
 
 class TChain;
+//class THnSparseD;
 
 class Individual;
 
@@ -56,6 +57,7 @@ class GA {
   void read_configuration(TString);
 
   double evaluate_fitness(Individual*);
+  TString get_selection(Individual*);
 
   double get_random_cut(const Variable &var);
 
@@ -64,6 +66,9 @@ class GA {
   TString m_signal_treename, m_background_treename;
   TChain *m_signal_chain, *m_background_chain;
 
+  TString m_weight;
+
+  THnSparseD *m_hist_sig;
 
 };
 #endif

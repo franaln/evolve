@@ -5,6 +5,11 @@
 
 #include "individual.h"
 
+bool sort_fitness (Individual *i, Individual *j)
+{
+  return (i->get_fitness() > j->get_fitness());
+}
+
 Individual::Individual()
 {
   m_fitness = 0;

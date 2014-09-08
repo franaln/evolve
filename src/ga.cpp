@@ -7,6 +7,7 @@
 
 #include <TEnv.h>
 #include <TChain.h>
+#include <THnSparse.h>
 
 #include "ga.h"
 #include "individual.h"
@@ -41,6 +42,18 @@ GA::GA(std::string configfile)
     }
   }
 
+  Int_t bins[4]; // = {10, 20};
+  Double_t xmin[4]; // = {0., -5.};
+  Double_t xmax[4]; // = {10., 5.};
+
+  for (unsigned int i=0; i<m_nvariables; i++) {
+    bins[i] = (m_variables[i].max - m_variables[i].min)/m_variables[i].step;
+    xmin[i] = m_variables[i].min;
+    xmax[i] = m_variables[i].max;
+  }
+
+  m_hist_sig = new THnSparseD("hist_sig", "Significance", m_nvariables, bins, xmin, xmax);
+
 }
 
 GA::~GA()
@@ -63,8 +76,6 @@ void GA::read_configuration(TString configfile)
   m_prob_crossover = env.GetValue("GA.ProbCrossOver", 0.0);
   m_elitism_rate = env.GetValue("GA.RateElitism", 0.0);
 
-  std::cout << m_population_size << std::endl;
-
   // Signal
   m_signal_file = env.GetValue("Signal.File", "");
   m_signal_treename = env.GetValue("Signal.TreeName", "");
@@ -74,7 +85,7 @@ void GA::read_configuration(TString configfile)
   m_background_treename = env.GetValue("Background.TreeName", "");
 
   // Variables
-  m_nvariables = env.GetValue("Variable.N", 0);
+  m_nvariables = env.GetValue("NVariables", 0);
 
   for (unsigned int i=0; i<m_nvariables; i++) {
     TString tmp = Form("Variable%i", i+1);
@@ -88,6 +99,9 @@ void GA::read_configuration(TString configfile)
 
     m_variables.push_back(var);
   }
+
+  m_weight = env.GetValue("Weight", "");
+  //m_lumi = env.GetValue("Lumi", -1.0);
 
   // Significance definition
   m_significance_def = env.GetValue("Significance", 1);
@@ -114,11 +128,14 @@ void GA::step()
     indv->set_fitness(fitness);
     m_total_fitness += fitness;
   }
-  print();
 
   // 2. sort individuals
-  std::sort(m_population.begin(), m_population.end());
-  std::reverse(m_population.begin(), m_population.end());
+  std::sort(m_population.begin(), m_population.end(), sort_fitness);
+  //std::reverse(m_population.begin(), m_population.end());
+
+  debug("---")
+  m_population[0]->print();
+  m_population[1]->print();
 
   // 3. elitism
   unsigned int elite_size = m_population_size * m_elitism_rate;
@@ -211,10 +228,9 @@ void GA::update(pop_vector &v)
   m_population.swap(v);
 }
 
-double GA::evaluate_fitness(Individual* indv)
+TString GA::get_selection(Individual *indv)
 {
   TString selection;
-
   for (unsigned int i=0; i<m_nvariables; i++) {
     selection += m_variables[i].name;
     selection += m_variables[i].type;
@@ -222,10 +238,24 @@ double GA::evaluate_fitness(Individual* indv)
     if(i<m_nvariables-1) selection += " && ";
   }
 
+  if (!m_weight.IsNull()) {
+      selection.Prepend("(");
+      selection.Append(")");
+      selection += "*" + m_weight;
+    }
+
+  return selection;
+}
+
+double GA::evaluate_fitness(Individual* indv)
+{
+  TString selection = get_selection(indv);
+
   double s = m_signal_chain->GetEntries(selection);
   double b = m_background_chain->GetEntries(selection);
+
   double significance = get_significance(s, b);
-  debug(significance);
+
   return significance;
 }
 
