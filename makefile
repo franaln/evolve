@@ -33,11 +33,11 @@ $(TARGET): $(OBJDIR) $(OBJ)
 
 $(OBJDIR)/main.o: $(SRCDIR)/main.cpp
 	@echo "Compiling $<"
-	$(CXX) $(CXXFLAGS) $(ROOTFLAGS) -c -o $@ $<
+	@$(CXX) $(CXXFLAGS) $(ROOTFLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(SRCDIR)/%.h
 	@echo "Compiling $<"
-	$(CXX) $(CXXFLAGS) $(ROOTFLAGS) -c -o $@ $<
+	@$(CXX) $(CXXFLAGS) $(ROOTFLAGS) -c -o $@ $<
 
 $(OBJDIR):
 	@mkdir -p $(OBJDIR)
