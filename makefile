@@ -28,7 +28,7 @@ all: $(TARGET)
 
 $(TARGET): $(OBJDIR) $(OBJ)
 	@echo "Linking $@"
-	@$(CXX) $(CXXFLAGS) $(ROOTLIBS) -o $@ $(OBJ)
+	@$(CXX) $(CXXFLAGS) $(OBJ) -o $@ $(ROOTLIBS)
 	@echo "$@ done."
 
 $(OBJDIR)/main.o: $(SRCDIR)/main.cpp
