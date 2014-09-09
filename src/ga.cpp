@@ -6,15 +6,12 @@
 #include <algorithm>
 
 #include <TEnv.h>
-#include <TChain.h>
 #include <TFile.h>
 
 #include "ga.h"
 #include "individual.h"
 #include "random.h"
 #include "significance.h"
-
-#define debug(x) std::cout << "debug: " << x << std::endl;
 
 GA::GA(std::string configfile)
 {
@@ -92,7 +89,8 @@ void GA::read_configuration(TString configfile)
   m_background_treename = env.GetValue("Background.TreeName", "");
 
   // Variables
-  m_nvars = env.GetValue("NVariables", 0);
+  m_nvars = env.GetValue("Variable.N", 0);
+  m_weight = env.GetValue("Variable.Weight", "");
 
   for (unsigned int i=0; i<m_nvars; i++) {
     TString tmp = Form("Variable%i", i+1);
@@ -108,11 +106,6 @@ void GA::read_configuration(TString configfile)
     m_variables.push_back(var);
   }
 
-  m_weight = env.GetValue("Weight", "");
-  //m_lumi = env.GetValue("Lumi", -1.0);
-
-  // Significance definition
-  m_significance_def = env.GetValue("Significance", 1);
 }
 
 void GA::evolve()

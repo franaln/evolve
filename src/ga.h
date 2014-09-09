@@ -8,9 +8,8 @@
 #include <vector> // std::vector
 
 #include <TString.h>
+#include <TChain.h>
 #include <THnSparse.h>
-
-class TChain;
 
 class Individual;
 
@@ -32,44 +31,38 @@ class GA {
   void evolve();
 
  private:
+  // options
   unsigned long m_population_size;
   unsigned long m_generation;
   double m_prob_crossover;
   double m_prob_mutation;
   double m_elitism_rate;
 
-  double m_total_fitness;
-
-  int m_significance_def;
   unsigned int  m_nvars;
-
+  TString m_weight;
   std::vector<Variable> m_variables;
 
-  pop_vector m_population;
+  TString m_signal_file, m_background_file;
+  TString m_signal_treename, m_background_treename;
 
+  // data
+  pop_vector m_population;
+  double m_total_fitness;
+  TChain *m_signal_chain, *m_background_chain;
+  THnSparseD *m_hist_s, *m_hist_b, *m_hist_sig;
+
+  // fns
   void step();
   void select_parents();
   int roulette();
   void crossover(Individual*, Individual*, pop_vector&);
   void mutate(pop_vector&);
   void update(pop_vector&);
-
   void print();
   void read_configuration(TString);
-
   double evaluate_fitness(Individual*);
   TString get_selection(Individual*);
-
   double get_random_cut(const Variable &var);
-
-
-  TString m_signal_file, m_background_file;
-  TString m_signal_treename, m_background_treename;
-  TChain *m_signal_chain, *m_background_chain;
-
-  TString m_weight;
-
-  THnSparseD *m_hist_s, *m_hist_b, *m_hist_sig;
 
 };
 #endif
