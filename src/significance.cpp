@@ -5,10 +5,8 @@
 
 double get_significance(double s, double b)
 {
-  if (s < 0 || b < 0){
-    //error("Error! The number of events of signal or background is < 0")
+  if (s < 0 || b < 0)
     return 0.00;
-  }
 
   //if (b == 0):
   //    return 0.00
@@ -31,10 +29,9 @@ double get_significance(double s, double b, double sb)
   // Get significance taking into account
   // the background uncertainty (from Cowan)
 
-  if (s < 0 || b < 0)
+  if (s < 0 || b < 1)
     return 0.00;
 
-  //if b == 0.: return 0.00
 
   //if sb is None: sb = 0.25 * b # for now we use 25% of uncertainty for the background
   sb = b * sb;
@@ -48,24 +45,15 @@ double get_significance(double s, double b, double sb)
   if (zaint <= 0.)
     return 0.00;
 
-  double za = TMath::Sqrt(zaint);
-
-  return za;
+  return TMath::Sqrt(zaint);
 }
 
 double get_efficiency(double s, double s0)
 {
-
-  if (s > s0)
+  if (s > s0 || s0 < 0.00001)
     return 0.0;
 
-  double efficiency;
-  if(s0 > 0)
-    efficiency = s/s0;
-  else
-    efficiency = 0.00;
-
-  return efficiency;
+  return s/s0;
 }
 
 double get_rejection(double b, double b0)

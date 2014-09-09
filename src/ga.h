@@ -37,13 +37,15 @@ class GA {
   double m_prob_crossover;
   double m_prob_mutation;
   double m_elitism_rate;
+  unsigned long m_steps;
 
   unsigned int  m_nvars;
   TString m_weight;
   std::vector<Variable> m_variables;
 
-  TString m_signal_file, m_background_file;
-  TString m_signal_treename, m_background_treename;
+  TString m_signal_file, m_signal_treename;
+  TString m_background_file, m_background_treename;
+  double m_background_syst;
 
   // data
   pop_vector m_population;

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 
+#include <TROOT.h>
 #include <TEnv.h>
 #include <TFile.h>
 
@@ -66,7 +67,10 @@ GA::~GA()
   delete m_background_chain;
 
   TFile f("test.root", "recreate");
+  m_hist_s->Write("signal");
+  m_hist_b->Write("background");
   m_hist_sig->Write("significance");
+
   f.Close();
 }
 
@@ -79,6 +83,7 @@ void GA::read_configuration(TString configfile)
   m_prob_mutation = env.GetValue("GA.ProbMutation", 0.0);
   m_prob_crossover = env.GetValue("GA.ProbCrossOver", 0.0);
   m_elitism_rate = env.GetValue("GA.RateElitism", 0.0);
+  m_steps = env.GetValue("GA.Steps", 10);
 
   // Signal
   m_signal_file = env.GetValue("Signal.File", "");
@@ -87,6 +92,7 @@ void GA::read_configuration(TString configfile)
   // Background
   m_background_file = env.GetValue("Background.File", "");
   m_background_treename = env.GetValue("Background.TreeName", "");
+  m_background_syst = env.GetValue("Background.Syst", 0.0);
 
   // Variables
   m_nvars = env.GetValue("Variable.N", 0);
@@ -111,7 +117,7 @@ void GA::read_configuration(TString configfile)
 void GA::evolve()
 {
   // loop step until condition is satisfied
-  for (unsigned int i=0; i<10; i++){
+  for (unsigned int i=0; i<m_steps; i++){
     std::cout << "Step " << i << " ..." << std::endl;
 
     step();
