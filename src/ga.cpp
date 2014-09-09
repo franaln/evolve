@@ -68,7 +68,7 @@ GA::~GA()
   delete m_signal_chain;
   delete m_background_chain;
 
-  TFile f("test.root", "create");
+  TFile f("test.root", "recreate");
   m_hist_sig->Write("significance");
   f.Close();
 }
@@ -103,6 +103,7 @@ void GA::read_configuration(TString configfile)
     var.min  = env.GetValue(tmp+".Min", 0.0);
     var.max  = env.GetValue(tmp+".Max", 0.0);
     var.step = env.GetValue(tmp+".Step", 0.0);
+    var.bins = int((var.max-var.min)/var.step);
 
     m_variables.push_back(var);
   }
@@ -117,8 +118,20 @@ void GA::read_configuration(TString configfile)
 void GA::evolve()
 {
   // loop step until condition is satisfied
-  for (unsigned int i=0; i<10; i++)
+  for (unsigned int i=0; i<10; i++){
+    std::cout << "Step " << i << " ..." << std::endl;
+
     step();
+
+    m_population[0]->print();
+  }
+
+  long total_calc = 1;
+  for (auto &var : m_variables) {
+    total_calc *= var.bins;
+  }
+  std::cout << "Number of calculations = " << m_hist_sig->GetNbins() << " of " << total_calc << std::endl;
+
 }
 
 void GA::step()
@@ -138,10 +151,6 @@ void GA::step()
 
   // 2. sort individuals
   std::sort(m_population.begin(), m_population.end(), sort_fitness);
-
-  debug("---")
-  m_population[0]->print();
-  m_population[1]->print();
 
   // 3. elitism
   unsigned int elite_size = m_population_size * m_elitism_rate;
@@ -254,6 +263,14 @@ TString GA::get_selection(Individual *indv)
 
 double GA::evaluate_fitness(Individual* indv)
 {
+  double* cuts = indv->get_cuts();
+
+  long bin_sig = m_hist_sig->GetBin(cuts, false);
+
+  if (bin_sig >= 0) {
+    return m_hist_sig->GetBinContent(bin_sig);
+  }
+
   TString selection = get_selection(indv);
 
   double s = m_signal_chain->GetEntries(selection);
@@ -261,7 +278,6 @@ double GA::evaluate_fitness(Individual* indv)
 
   double significance = get_significance(s, b);
 
-  double* cuts = indv->get_cuts();
   m_hist_s->SetBinContent(m_hist_s->GetBin(cuts), s);
   m_hist_b->SetBinContent(m_hist_b->GetBin(cuts), b);
   m_hist_sig->SetBinContent(m_hist_sig->GetBin(cuts), significance);
@@ -271,9 +287,7 @@ double GA::evaluate_fitness(Individual* indv)
 
 double GA::get_random_cut(const Variable &var)
 {
-  int n = (var.max-var.min)/var.step;
-
-  int rnd = get_random_int(0, n);
+  int rnd = get_random_int(0, var.bins);
 
   return (var.min + rnd * var.step);
 }

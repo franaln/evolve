@@ -20,6 +20,7 @@ struct Variable {
   std::string name;
   std::string type;
   double min, max, step;
+  int bins;
 };
 
 class GA {
