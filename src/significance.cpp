@@ -5,44 +5,38 @@
 
 double get_significance(double s, double b)
 {
-  if (s < 0 || b < 0)
+  if (s < 0 || b < 1)
     return 0.00;
-
-  //if (b == 0):
-  //    return 0.00
 
   double temp =  2 * ( (s + b) * TMath::Log(1 + s/b) - s );
 
-  if (temp < 0.0)
+  if (temp < 0.00)
     return 0.00;
 
   double significance = TMath::Sqrt(temp);
 
-  if (significance > 0.0 && !std::isinf(significance))
-    return significance;
-  else
+  if (significance < 0.00 || !std::isinf(significance))
     return 0.0;
+
+  return significance;
 }
 
+// Get significance taking into account
+// the background uncertainty
 double get_significance(double s, double b, double sb)
 {
-  // Get significance taking into account
-  // the background uncertainty (from Cowan)
-
   if (s < 0 || b < 1)
     return 0.00;
 
+  sb = b * sb;   // background uncertainty (sb is given as percentage)
 
-  //if sb is None: sb = 0.25 * b # for now we use 25% of uncertainty for the background
-  sb = b * sb;
-
-  double b_2 = TMath::Power(b, 2);
+  double b_2  = TMath::Power(b, 2);
   double sb_2 = TMath::Power(sb, 2);
 
   double zaint = 2 * ((s + b) * TMath::Log( ((s + b) * (b + sb_2))/(b_2 + (s + b) * sb_2) ) -
                       (b_2/sb_2) * TMath::Log(1 + (s * sb_2)/(b * (b + sb_2))) );
 
-  if (zaint <= 0.)
+  if (zaint < 0.00 || !std::isinf(significance))
     return 0.00;
 
   return TMath::Sqrt(zaint);
@@ -50,7 +44,7 @@ double get_significance(double s, double b, double sb)
 
 double get_efficiency(double s, double s0)
 {
-  if (s > s0 || s0 < 0.00001)
+  if (s > s0 || s0 < 1)
     return 0.0;
 
   return s/s0;
