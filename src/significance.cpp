@@ -8,17 +8,12 @@ double get_significance(double s, double b)
   if (s < 0 || b < 1)
     return 0.00;
 
-  double temp =  2 * ( (s + b) * TMath::Log(1 + s/b) - s );
+  double sig_2 =  2 * ( (s + b) * TMath::Log(1 + s/b) - s );
 
-  if (temp < 0.00)
+  if (sig_2 < 0.00 || std::isinf(sig_2))
     return 0.00;
 
-  double significance = TMath::Sqrt(temp);
-
-  if (significance < 0.00 || !std::isinf(significance))
-    return 0.0;
-
-  return significance;
+  return TMath::Sqrt(sig_2);
 }
 
 // Get significance taking into account
@@ -33,13 +28,13 @@ double get_significance(double s, double b, double sb)
   double b_2  = TMath::Power(b, 2);
   double sb_2 = TMath::Power(sb, 2);
 
-  double zaint = 2 * ((s + b) * TMath::Log( ((s + b) * (b + sb_2))/(b_2 + (s + b) * sb_2) ) -
+  double sig_2 = 2 * ((s + b) * TMath::Log( ((s + b) * (b + sb_2))/(b_2 + (s + b) * sb_2) ) -
                       (b_2/sb_2) * TMath::Log(1 + (s * sb_2)/(b * (b + sb_2))) );
 
-  if (zaint < 0.00 || !std::isinf(significance))
+  if (sig_2 < 0.00 || !std::isinf(sig_2))
     return 0.00;
 
-  return TMath::Sqrt(zaint);
+  return TMath::Sqrt(sig_2);
 }
 
 double get_efficiency(double s, double s0)

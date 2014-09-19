@@ -7,7 +7,6 @@
 
 generator_t generator;
 
-
 void init_random()
 {
   // obtain a seed from the system clock:

@@ -1,10 +1,6 @@
 /** @file evolve.cpp
-    @brief brief comment
 
     @mainpage evolve.
-
-    Este código implementa una dinámica molecular simple con el propósito de ejemplificar
-    algunas características de la implementación de un modelado orientado a objetos.
 
     @author Francisco Alonso <franaln@gmail.com>
     @version 0.1
@@ -15,12 +11,6 @@
 
 #include "ga.h"
 
-/** @todo
-    - log
-    - save step. How???
-    - fitness vs time plot
-    - termination condition: optimal_value, max_generation
-*/
 int main(int argc, char *argv[])
 {
 
@@ -29,7 +19,6 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::cout << argv[1] << std::endl;
   GA ga(argv[1]);
   ga.evolve();
 
