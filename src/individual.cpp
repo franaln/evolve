@@ -28,14 +28,6 @@ Individual* Individual::copy()
   return twin;
 }
 
-void Individual::print()
-{
-  for(auto &cut : m_cuts)
-    std::cout << cut << " | ";
-
-  std::cout << " sig= " << m_fitness << std::endl;
-}
-
 double* Individual::get_cuts()
 {
   double *cuts = new double[m_cuts.size()];

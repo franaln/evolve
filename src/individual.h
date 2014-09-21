@@ -25,8 +25,6 @@ class Individual {
 
   Individual* copy();
 
-  void print();
-
  private:
   std::vector<double> m_cuts;
   double m_fitness;
