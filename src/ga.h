@@ -1,11 +1,11 @@
-/** @file ga.h
- */
+/** @file ga.h */
 
 #ifndef GA_H
 #define GA_H
 
 #include <string> // std::string
 #include <vector> // std::vector
+#include <fstream> // std::ofstream
 
 #include <TString.h>
 #include <TChain.h>
@@ -31,27 +31,26 @@ class GA {
   void evolve();
 
  private:
-  // options
+  TString m_name;
   unsigned long m_population_size;
   unsigned long m_generation;
   double m_prob_crossover;
   double m_prob_mutation;
   double m_elitism_rate;
   unsigned long m_steps;
-
   unsigned int  m_nvars;
   TString m_weight;
+  TString m_basesel;
   std::vector<Variable> m_variables;
-
   TString m_signal_file, m_signal_treename;
   TString m_background_file, m_background_treename;
   double m_background_syst;
-
-  // data
+  double m_efficiency_min;
   pop_vector m_population;
   double m_total_fitness;
   TChain *m_signal_chain, *m_background_chain;
   THnSparseD *m_hist_s, *m_hist_b, *m_hist_sig;
+  std::ofstream output;
 
   // fns
   void step();
@@ -60,11 +59,14 @@ class GA {
   void crossover(Individual*, Individual*, pop_vector&);
   void mutate(pop_vector&);
   void update(pop_vector&);
-  void print();
+  void log();
   void read_configuration(TString);
-  double evaluate_fitness(Individual*);
+  void evaluate_fitness();
+  double evaluate_individual_fitness(Individual*);
   TString get_selection(Individual*);
+  double get_events(TChain*, TString);
   double get_random_cut(const Variable &var);
+  void save_histograms();
 
 };
 #endif

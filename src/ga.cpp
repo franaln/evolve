@@ -8,11 +8,13 @@
 #include <TROOT.h>
 #include <TEnv.h>
 #include <TFile.h>
+#include <TH1D.h>
 
 #include "ga.h"
 #include "individual.h"
 #include "random.h"
 #include "significance.h"
+#include "log.h"
 
 GA::GA(std::string configfile)
 {
@@ -20,25 +22,15 @@ GA::GA(std::string configfile)
 
   init_random();
 
+  // output file
+  output.open(m_name+".log");
+
   // chains
   m_signal_chain = new TChain(m_signal_treename);
   m_signal_chain->Add(m_signal_file);
 
   m_background_chain = new TChain(m_background_treename);
   m_background_chain->Add(m_background_file);
-
-  // create initial population (generation 0)
-  m_generation = 0;
-  m_population.resize(m_population_size);
-
-  // fill each individual randomly
-  for (unsigned int i=0; i<m_population_size; i++){
-    m_population[i] = new Individual();
-
-    for (auto &var : m_variables) {
-      m_population[i]->add_cut(get_random_cut(var));
-    }
-  }
 
   // histograms
   Int_t bins[m_nvars];
@@ -55,28 +47,40 @@ GA::GA(std::string configfile)
   m_hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
   m_hist_sig = new THnSparseD("hist_sig", "Significance", m_nvars, bins, xmin, xmax);
 
+  // create initial population (generation 0)
+  m_generation = 0;
+  m_population.resize(m_population_size);
+
+  for (unsigned int i=0; i<m_population_size; i++){
+    m_population[i] = new Individual();
+
+    for (auto &var : m_variables) {
+      m_population[i]->add_cut(get_random_cut(var));
+    }
+  }
+
+  evaluate_fitness();
 }
 
 GA::~GA()
 {
+  save_histograms();
+
+  output.close();
+
   for(auto& ind : m_population){
     delete ind;
   }
 
   delete m_signal_chain;
   delete m_background_chain;
-
-  TFile f("test.root", "recreate");
-  m_hist_s->Write("signal");
-  m_hist_b->Write("background");
-  m_hist_sig->Write("significance");
-
-  f.Close();
 }
 
 void GA::read_configuration(TString configfile)
 {
   TEnv env(configfile.Data());
+
+  m_name = env.GetValue("AnalysisName", "output");
 
   // GA parameters
   m_population_size = env.GetValue("GA.PopulationSize", 0);
@@ -92,11 +96,12 @@ void GA::read_configuration(TString configfile)
   // Background
   m_background_file = env.GetValue("Background.File", "");
   m_background_treename = env.GetValue("Background.TreeName", "");
-  m_background_syst = env.GetValue("Background.Syst", 0.0);
+  m_background_syst = env.GetValue("Background.Syst", -1.0);
 
   // Variables
   m_nvars = env.GetValue("Variable.N", 0);
   m_weight = env.GetValue("Variable.Weight", "");
+  m_basesel = env.GetValue("Variable.BaseSelection", "");
 
   for (unsigned int i=0; i<m_nvars; i++) {
     TString tmp = Form("Variable%i", i+1);
@@ -112,17 +117,16 @@ void GA::read_configuration(TString configfile)
     m_variables.push_back(var);
   }
 
+  m_efficiency_min = env.GetValue("Efficiency.Min", -1.0);
+
 }
 
 void GA::evolve()
 {
   // loop step until condition is satisfied
   for (unsigned int i=0; i<m_steps; i++){
-    std::cout << "Step " << i << " ..." << std::endl;
-
+    std::cout << "Step " << i << " of " <<  m_steps << " ..." << std::endl;
     step();
-
-    m_population[0]->print();
   }
 
   long total_calc = 1;
@@ -139,26 +143,14 @@ void GA::step()
   children.clear();
   children.reserve(m_population_size);
 
-  // 1. evaluate fitness
-  m_total_fitness = 0.0;
-  float fitness;
-  for(auto& indv : m_population){
-    fitness = evaluate_fitness(indv);
-    indv->set_fitness(fitness);
-    m_total_fitness += fitness;
-  }
-
-  // 2. sort individuals
-  std::sort(m_population.begin(), m_population.end(), sort_fitness);
-
-  // 3. elitism
+  // elitism
   unsigned int elite_size = m_population_size * m_elitism_rate;
 
   for (unsigned int i=0; i<elite_size; i++) {
     children.push_back(m_population[i]->copy());
   }
 
-  // 4. crossover
+  // crossover
   while (children.size() < (m_population_size - elite_size)) {
 
     // select parents
@@ -169,16 +161,35 @@ void GA::step()
     crossover(m_population[p1], m_population[p2], children);
   }
 
-  // 5. mutation
+  // mutation
   mutate(children);
 
-  // 6. update population
+  // update population
   update(children);
   m_generation++;
 
+  // evaluate fitness and sort
+  evaluate_fitness();
+
   // 7. log, save generation
-  //print();
+  log();
 }
+
+void GA::evaluate_fitness()
+{
+  // evaluate fitness for all individuals
+  m_total_fitness = 0.0;
+  float fitness;
+  for(auto& indv : m_population){
+    fitness = evaluate_individual_fitness(indv);
+    indv->set_fitness(fitness);
+    m_total_fitness += fitness;
+  }
+
+  // sort individuals by fitness
+  std::sort(m_population.begin(), m_population.end(), sort_fitness);
+}
+
 
 int GA::roulette()
 {
@@ -197,7 +208,6 @@ int GA::roulette()
 void GA::crossover(Individual *p1, Individual *p2, pop_vector &v)
 {
   // one point crossover
-
   if (get_random_prob() < m_prob_crossover) {
     unsigned int gi = get_random_int(0, m_nvars-1);
 
@@ -232,8 +242,6 @@ void GA::mutate(pop_vector &v)
       indv->set_cut(idx, get_random_cut(m_variables[idx]));
     }
   }
-
-  return;
 }
 
 void GA::update(pop_vector &v)
@@ -243,7 +251,7 @@ void GA::update(pop_vector &v)
 
 TString GA::get_selection(Individual *indv)
 {
-  TString selection;
+  TString selection = m_basesel + "&&";
   for (unsigned int i=0; i<m_nvars; i++) {
     selection += m_variables[i].name;
     selection += m_variables[i].type;
@@ -251,37 +259,57 @@ TString GA::get_selection(Individual *indv)
     if(i<m_nvars-1) selection += " && ";
   }
 
-  if (!m_weight.IsNull()) {
-      selection.Prepend("(");
-      selection.Append(")");
-      selection += "*" + m_weight;
-    }
-
   return selection;
 }
 
-double GA::evaluate_fitness(Individual* indv)
+double GA::evaluate_individual_fitness(Individual* indv)
 {
   double* cuts = indv->get_cuts();
 
+  // if it is already calculated, return significance from histogram
   long bin_sig = m_hist_sig->GetBin(cuts, false);
-
   if (bin_sig >= 0) {
     return m_hist_sig->GetBinContent(bin_sig);
   }
 
   TString selection = get_selection(indv);
 
-  double s = m_signal_chain->GetEntries(selection);
-  double b = m_background_chain->GetEntries(selection);
+  double s = get_events(m_signal_chain, selection);
+  double b = get_events(m_background_chain, selection);
 
-  double significance = get_significance(s, b);
+  // if (m_efficiency_min > 0.) {
+
+  //   if (m_s0 < 0)
+  //     m_s0 = m_signal_chain->GetEntries()
+
+  //       get_efficiency(
+
+  // }
+
+
+  double significance = 0.;
+  if (m_background_syst > 0.)
+    significance = get_significance(s, b, m_background_syst);
+  else
+    significance = get_significance(s, b);
 
   m_hist_s->SetBinContent(m_hist_s->GetBin(cuts), s);
   m_hist_b->SetBinContent(m_hist_b->GetBin(cuts), b);
   m_hist_sig->SetBinContent(m_hist_sig->GetBin(cuts), significance);
 
   return significance;
+}
+
+double GA::get_events(TChain *chain, TString selection)
+{
+  TH1D *h_tmp = new TH1D("htmp", "htmp", 1, 0.5, 1.5);
+  chain->Project("htmp", selection, m_weight);
+
+  double n = h_tmp->Integral(1, h_tmp->GetNbinsX());
+
+  h_tmp->Delete();
+
+  return n;
 }
 
 double GA::get_random_cut(const Variable &var)
@@ -291,11 +319,27 @@ double GA::get_random_cut(const Variable &var)
   return (var.min + rnd * var.step);
 }
 
-void GA::print()
+void GA::log()
 {
-  std::cout << "--- Generation " << m_generation << std::endl;
-  for(const auto &indv : m_population){
-   indv->print();
+  output << "--- Generation " << m_generation << std::endl;
+  for (const auto &indv : m_population) {
+
+    for (unsigned int i=0; i<m_nvars; i++) {
+      output << indv->get_cut(i) << " | ";
+    }
+    output << indv->get_fitness() << std::endl;
   }
-  std::cout << "---" << std::endl;
+
+  output << "---" << std::endl;
+}
+
+void GA::save_histograms()
+{
+  TFile f(m_name+".root", "recreate");
+
+  m_hist_s->Write("signal");
+  m_hist_b->Write("background");
+  m_hist_sig->Write("significance");
+
+  f.Close();
 }
