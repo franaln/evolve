@@ -27,10 +27,11 @@ GA::GA(std::string configfile)
 
   // chains
   m_signal_chain = new TChain(m_signal_treename);
-  m_signal_chain->Add(m_signal_file);
+  m_signal_chain->AddFile(m_signal_file);
 
   m_background_chain = new TChain(m_background_treename);
-  m_background_chain->Add(m_background_file);
+  m_background_chain->AddFile(m_background_file);
+
 
   // histograms
   Int_t bins[m_nvars];
@@ -47,19 +48,6 @@ GA::GA(std::string configfile)
   m_hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
   m_hist_sig = new THnSparseD("hist_sig", "Significance", m_nvars, bins, xmin, xmax);
 
-  // create initial population (generation 0)
-  m_generation = 0;
-  m_population.resize(m_population_size);
-
-  for (unsigned int i=0; i<m_population_size; i++){
-    m_population[i] = new Individual();
-
-    for (auto &var : m_variables) {
-      m_population[i]->add_cut(get_random_cut(var));
-    }
-  }
-
-  evaluate_fitness();
 }
 
 GA::~GA()
@@ -84,10 +72,10 @@ void GA::read_configuration(TString configfile)
 
   // GA parameters
   m_population_size = env.GetValue("GA.PopulationSize", 0);
-  m_prob_mutation = env.GetValue("GA.ProbMutation", 0.0);
-  m_prob_crossover = env.GetValue("GA.ProbCrossOver", 0.0);
-  m_elitism_rate = env.GetValue("GA.RateElitism", 0.0);
-  m_steps = env.GetValue("GA.Steps", 10);
+  m_generation_max  = env.GetValue("GA.GenerationMax", 10);
+  m_prob_mutation   = env.GetValue("GA.ProbMutation", 0.0);
+  m_prob_crossover  = env.GetValue("GA.ProbCrossOver", 0.0);
+  m_elitism_rate    = env.GetValue("GA.RateElitism", 0.0);
 
   // Signal
   m_signal_file = env.GetValue("Signal.File", "");
@@ -117,15 +105,28 @@ void GA::read_configuration(TString configfile)
     m_variables.push_back(var);
   }
 
-  m_efficiency_min = env.GetValue("Efficiency.Min", -1.0);
-
 }
 
 void GA::evolve()
 {
+  // create initial population (generation 0)
+  std::cout << "Generation 0 of " <<  m_generation_max << " ..." << std::endl;
+  m_generation = 0;
+  m_population.resize(m_population_size);
+
+  for (unsigned int i=0; i<m_population_size; i++){
+    m_population[i] = new Individual();
+
+    for (auto &var : m_variables) {
+      m_population[i]->add_cut(get_random_cut(var));
+    }
+  }
+
+  evaluate_fitness();
+
   // loop step until condition is satisfied
-  for (unsigned int i=0; i<m_steps; i++){
-    std::cout << "Step " << i << " of " <<  m_steps << " ..." << std::endl;
+  for (unsigned int i=1; i<m_generation_max; i++){
+    std::cout << "Generation " << i << " of " <<  m_generation_max << " ..." << std::endl;
     step();
   }
 
@@ -249,19 +250,6 @@ void GA::update(pop_vector &v)
   m_population.swap(v);
 }
 
-TString GA::get_selection(Individual *indv)
-{
-  TString selection = m_basesel + "&&";
-  for (unsigned int i=0; i<m_nvars; i++) {
-    selection += m_variables[i].name;
-    selection += m_variables[i].type;
-    selection += Form("%f", indv->get_cut(i));
-    if(i<m_nvars-1) selection += " && ";
-  }
-
-  return selection;
-}
-
 double GA::evaluate_individual_fitness(Individual* indv)
 {
   double* cuts = indv->get_cuts();
@@ -277,16 +265,6 @@ double GA::evaluate_individual_fitness(Individual* indv)
   double s = get_events(m_signal_chain, selection);
   double b = get_events(m_background_chain, selection);
 
-  // if (m_efficiency_min > 0.) {
-
-  //   if (m_s0 < 0)
-  //     m_s0 = m_signal_chain->GetEntries()
-
-  //       get_efficiency(
-
-  // }
-
-
   double significance = 0.;
   if (m_background_syst > 0.)
     significance = get_significance(s, b, m_background_syst);
@@ -298,6 +276,23 @@ double GA::evaluate_individual_fitness(Individual* indv)
   m_hist_sig->SetBinContent(m_hist_sig->GetBin(cuts), significance);
 
   return significance;
+}
+
+TString GA::get_selection(Individual *indv)
+{
+  TString selection;
+
+  if (!m_basesel.IsNull())
+    selection = m_basesel + "&&";
+
+  for (unsigned int i=0; i<m_nvars; i++) {
+    selection += m_variables[i].name;
+    selection += m_variables[i].type;
+    selection += Form("%f", indv->get_cut(i));
+    if(i<m_nvars-1) selection += " && ";
+  }
+
+  return selection;
 }
 
 double GA::get_events(TChain *chain, TString selection)

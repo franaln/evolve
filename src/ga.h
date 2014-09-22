@@ -37,7 +37,7 @@ class GA {
   double m_prob_crossover;
   double m_prob_mutation;
   double m_elitism_rate;
-  unsigned long m_steps;
+  unsigned long m_generation_max;
   unsigned int  m_nvars;
   TString m_weight;
   TString m_basesel;
@@ -45,7 +45,6 @@ class GA {
   TString m_signal_file, m_signal_treename;
   TString m_background_file, m_background_treename;
   double m_background_syst;
-  double m_efficiency_min;
   pop_vector m_population;
   double m_total_fitness;
   TChain *m_signal_chain, *m_background_chain;
