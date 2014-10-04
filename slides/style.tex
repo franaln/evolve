@@ -1,0 +1,142 @@
+% ----------
+%  Packages
+% ----------
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{graphicx}
+
+% -------------------------------
+%  Optional packages (uncomment)
+% -------------------------------
+\usepackage{tikz}
+%\usepackage{onimage}
+%\usepackage{multirow}
+%\usepackage{verbatim}
+\usepackage{pstricks,pst-grad}
+%\usepackage{hyperref} % links
+%\usepackage{cancel}  % tachado en diagonal
+%\usepackage{wasysym} % caritas
+%\usepackage[normalem]{ulem} % tachado -> \sout{}
+\usetikzlibrary{arrows,shapes,shadows,positioning}
+
+\graphicspath{{./images/}} % Images folder
+
+% --------------
+%  Style config
+% --------------
+\usetheme{Boadilla}
+\renewcommand{\arraystretch}{1.5}
+
+\setbeamersize{text margin left=.2cm}
+\setbeamersize{text margin right=.2cm}
+
+\definecolor{mcolor}{HTML}{6187bb} % azulado
+\definecolor{scolor}{HTML}{5ACE60} % green
+\definecolor{mgray}{HTML}{4D4D4D}  % gray
+\definecolor{sgray}{HTML}{9E9E9E}
+\definecolor{tgray}{HTML}{E3E3E3}
+\definecolor{agray}{HTML}{1C1C1C}
+
+\definecolor{backgroundcolor}{gray}{0.96}
+\definecolor{keywordcolor}{HTML}{2592EA}
+\definecolor{commentcolor}{HTML}{EA252F}
+\definecolor{stringcolor}{HTML}{D4C95E} %EAE025}
+
+\setbeamercolor*{frametitle}{bg=mcolor,fg=white}
+%%\setbeamercolor*{frametitle}{bg=white,fg=mcolor}
+\setbeamercolor*{item}{fg=agray}
+\setbeamercolor*{title}{fg=mcolor}
+\setbeamercolor*{author}{fg=mgray}
+\setbeamercolor*{institute}{fg=mgray}
+\setbeamercolor*{date}{fg=mgray}
+\setbeamercolor*{structure}{fg=mcolor}
+\setbeamercolor*{footline}{fg=white, bg=mgray}
+
+\renewcommand\mathfamilydefault{\rmdefault}
+\renewcommand\familydefault{\rmdefault}
+\setbeamerfont{title}{family*={fouriernc}, size=\fontsize{30}{32}}
+\setbeamerfont{author}{family*={fouriernc}, size=\large}
+\setbeamerfont{block body}{size*={8}{0}, family*={fouriernc}}
+\setbeamerfont{block title}{size*={8}{0}, family*={fouriernc}}
+
+%% \setbeamertemplate{itemize item}{\tiny\raise.2ex\hbox{\donotcoloroutermaths$\bullet$}}
+%% \setbeamertemplate{itemize subitem}{\tiny\raise.1ex\hbox{\donotcoloroutermaths$\circ$}}
+%% \setbeamertemplate{itemize subsubitem}{\tiny\raise.1ex\hbox{\donotcoloroutermaths$\bullet$}}
+\setbeamertemplate{enumerate items}[default]
+\setbeamertemplate{itemize item}{\bf -}
+\setbeamertemplate{itemize subitem}{-}
+\setbeamertemplate{itemize subsubitem}{-}
+
+% ------------
+%  Title page
+% ------------
+\defbeamertemplate*{title page}{customized}[1][]
+{
+  \centering
+  \begin{minipage}[t][5cm][c]{\textwidth}
+  \centering
+  \usebeamercolor[fg]{title}\usebeamerfont{title}\inserttitle\par
+  \end{minipage}
+  \begin{minipage}[t][3.6cm][c]{\textwidth}
+  \centering
+  \usebeamercolor[fg]{author}\usebeamerfont{author}\insertauthor\par
+  \medskip
+  \usebeamercolor[fg]{institute}\usebeamerfont{institute}\insertinstitute\par
+  \end{minipage}
+  \begin{minipage}[t][1cm][c]{\textwidth}
+  \centering
+  \usebeamercolor[fg]{date}\usebeamerfont{date}\insertdate\par
+  \end{minipage}
+}
+
+
+% -------------
+%  Frame title
+% -------------
+\defbeamertemplate*{frametitle}{customized}[1][]
+{
+  \vspace{-0.05cm}
+  \begin{beamercolorbox}[sep=.5em,wd=\paperwidth]{frametitle}
+   {\bf \Large \insertframetitle\hfill{\small\insertframesubtitle\hspace{.1cm}}}
+  \vspace{-.10cm}
+  \end{beamercolorbox}
+}
+
+% --------
+%  Footer
+% --------
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{
+  \vspace{0.1cm}
+  \hfill{\color{mgray} \insertframenumber/\inserttotalframenumber} \hspace*{0.12cm}
+  \vspace*{0.12cm}
+}
+
+% -------------
+%  Tikz shapes
+% -------------
+\newcommand{\redrectangle}[1]{\tikz[baseline] \node[rectangle, thick, fill=red!30, anchor=base] {#1};}
+\newcommand{\bluerectangle}[1]{\tikz[baseline] \node[rectangle, thick, fill=mcolor!30, anchor=base] {#1};}
+\newcommand{\greenrectangle}[1]{\tikz[baseline] \node[rectangle, thick, fill=green!30, anchor=base] {#1};}
+\newcommand{\grayrectangle}[1]{\tikz[baseline] \node[rectangle, thick, fill=black!30, anchor=base]{#1};}
+\newcommand{\tikztag}[1]{\tikz[baseline] \node (#1) {};}
+
+% -----------------
+%  Custom commands
+% -----------------
+\newcommand{\boxd}[2]{\begin{center}\psframebox[linewidth=.1mm,linecolor=mcolor,framesep=0.5em]{\begin{minipage}[t][]{#1\textwidth}#2\end{minipage}} \end{center}}
+\newcommand{\centered}[1]{\begin{center} #1 \end{center}}
+\newcommand{\cheader}[1]{\begin{center} \large \bf \color{sgray} #1 \end{center}}
+\newcommand{\ptitle}[1]{\begin{flushleft}{\large \bf #1}\end{flushleft}}
+\newcommand{\onlytitle}[1]{\begin{center} \fontsize{5cm}{1em}\selectfont \bf \color{sgray} #1 \end{center}}
+\newcommand{\oneitem}[1]{\begin{itemize} \item #1 \end{itemize}}
+\def\colorarrow{{\color{mcolor}\ensuremath{\to}}}
+\newcommand{\colorify}[1]{{\color{mcolor} #1}}
+\def\beginbackup{\begin{frame}\onlytitle{Backup}\end{frame}}
+\newcommand{\fix}[1]{{\color{red} #1}}
+\def\hr{\begin{center} \line(1,0){350} \end{center}}
