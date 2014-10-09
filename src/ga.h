@@ -32,6 +32,8 @@ class GA {
 
  private:
   TString m_name;
+  TString m_signal_file, m_signal_treename;
+  TString m_background_file, m_background_treename;
   unsigned long m_population_size;
   unsigned long m_generation;
   double m_prob_crossover;
@@ -42,13 +44,12 @@ class GA {
   TString m_weight;
   TString m_basesel;
   std::vector<Variable> m_variables;
-  TString m_signal_file, m_signal_treename;
-  TString m_background_file, m_background_treename;
   double m_background_syst;
   pop_vector m_population;
   double m_total_fitness;
   TChain *m_signal_chain, *m_background_chain;
-  THnSparseD *m_hist_s, *m_hist_b, *m_hist_sig;
+  THnSparseD *hist_s, *hist_b, *hist_sig;
+  std::vector<double> g_best, g_mean;
   std::ofstream output;
 
   // fns

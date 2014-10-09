@@ -39,7 +39,7 @@ double get_significance(double s, double b, double sb)
 
 double get_efficiency(double s, double s0)
 {
-  if (s > s0 || s0 < 1)
+  if (s > s0 || s0 < 0.1)
     return 0.0;
 
   return s/s0;

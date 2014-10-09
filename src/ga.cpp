@@ -44,9 +44,9 @@ GA::GA(std::string configfile)
     xmax[i] = m_variables[i].max;
   }
 
-  m_hist_s   = new THnSparseD("hist_s", "Signal", m_nvars, bins, xmin, xmax);
-  m_hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
-  m_hist_sig = new THnSparseD("hist_sig", "Significance", m_nvars, bins, xmin, xmax);
+  hist_s   = new THnSparseD("hist_s", "Signal", m_nvars, bins, xmin, xmax);
+  hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
+  hist_sig = new THnSparseD("hist_sig", "Significance", m_nvars, bins, xmin, xmax);
 
 }
 
@@ -121,11 +121,13 @@ void GA::evolve()
       m_population[i]->add_cut(get_random_cut(var));
     }
   }
-
   evaluate_fitness();
 
   // loop step until condition is satisfied
   for (unsigned int i=1; i<m_generation_max; i++){
+
+    // check if
+
     std::cout << "Generation " << i << " of " <<  m_generation_max << " ..." << std::endl;
     step();
   }
@@ -134,8 +136,7 @@ void GA::evolve()
   for (auto &var : m_variables) {
     total_calc *= var.bins;
   }
-  std::cout << "Number of calculations = " << m_hist_sig->GetNbins() << " of " << total_calc << std::endl;
-
+  std::cout << "Number of calculations = " << hist_sig->GetNbins() << " of " << total_calc << std::endl;
 }
 
 void GA::step()
@@ -172,7 +173,7 @@ void GA::step()
   // evaluate fitness and sort
   evaluate_fitness();
 
-  // 7. log, save generation
+  // log, save generation
   log();
 }
 
@@ -189,6 +190,9 @@ void GA::evaluate_fitness()
 
   // sort individuals by fitness
   std::sort(m_population.begin(), m_population.end(), sort_fitness);
+
+  g_best.push_back(m_population[0]->get_fitness());
+  g_mean.push_back(m_total_fitness/m_population_size);
 }
 
 
@@ -255,9 +259,9 @@ double GA::evaluate_individual_fitness(Individual* indv)
   double* cuts = indv->get_cuts();
 
   // if it is already calculated, return significance from histogram
-  long bin_sig = m_hist_sig->GetBin(cuts, false);
+  long bin_sig = hist_sig->GetBin(cuts, false);
   if (bin_sig >= 0) {
-    return m_hist_sig->GetBinContent(bin_sig);
+    return hist_sig->GetBinContent(bin_sig);
   }
 
   TString selection = get_selection(indv);
@@ -271,9 +275,9 @@ double GA::evaluate_individual_fitness(Individual* indv)
   else
     significance = get_significance(s, b);
 
-  m_hist_s->SetBinContent(m_hist_s->GetBin(cuts), s);
-  m_hist_b->SetBinContent(m_hist_b->GetBin(cuts), b);
-  m_hist_sig->SetBinContent(m_hist_sig->GetBin(cuts), significance);
+  hist_s->SetBinContent(hist_s->GetBin(cuts), s);
+  hist_b->SetBinContent(hist_b->GetBin(cuts), b);
+  hist_sig->SetBinContent(hist_sig->GetBin(cuts), significance);
 
   return significance;
 }
@@ -332,9 +336,28 @@ void GA::save_histograms()
 {
   TFile f(m_name+".root", "recreate");
 
-  m_hist_s->Write("signal");
-  m_hist_b->Write("background");
-  m_hist_sig->Write("significance");
+  hist_s->Write("signal");
+  hist_b->Write("background");
+  hist_sig->Write("significance");
 
   f.Close();
+}
+
+void GA::create_plots()
+{
+
+  for (unsigned int i=0; i<m_nvars; i++) {
+
+    TH1D *h_s = TH1D(m_variables[i].name, m_variables[i].name, m_variables[i].bins, m_variables[i].min, m_variables[i].max);
+    TH1D *h_b = TH1D(m_variables[i].name, m_variables[i].name, m_variables[i].bins, m_variables[i].min, m_variables[i].max);
+
+    tree_signal->Project()
+
+    m_variables[i]
+
+
+  }
+
+
+
 }
