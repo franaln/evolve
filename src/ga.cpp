@@ -14,7 +14,6 @@
 #include "individual.h"
 #include "random.h"
 #include "significance.h"
-#include "log.h"
 
 GA::GA(std::string configfile)
 {
@@ -341,23 +340,4 @@ void GA::save_histograms()
   hist_sig->Write("significance");
 
   f.Close();
-}
-
-void GA::create_plots()
-{
-
-  for (unsigned int i=0; i<m_nvars; i++) {
-
-    TH1D *h_s = TH1D(m_variables[i].name, m_variables[i].name, m_variables[i].bins, m_variables[i].min, m_variables[i].max);
-    TH1D *h_b = TH1D(m_variables[i].name, m_variables[i].name, m_variables[i].bins, m_variables[i].min, m_variables[i].max);
-
-    tree_signal->Project()
-
-    m_variables[i]
-
-
-  }
-
-
-
 }
