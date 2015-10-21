@@ -3,10 +3,12 @@
 \usepackage{listings}
 \input{style.tex}
 
+\usetikzlibrary{decorations.pathreplacing}
+
 \title{\bf Optimizaci\'on de una b\'usqueda de nuevas part\'iculas utilizando un algoritmo gen\'etico}
 \author{Francisco Alonso}
 \institute{}
-\date{HCC - \today}
+\date{Trabajo Final HCC - \today}
 
 \lstdefinestyle{mystyle}{
   backgroundcolor=\color{backgroundcolor},
@@ -35,7 +37,7 @@
 
   \begin{itemize}\itemsep0.5cm
   \item T\'ipicamente, las nuevas part\'iculas decaen con ciertas caracter\'isticas que distinguen los eventos de \emph{se\~nal}
-    de los eventos producidos por los procesos que llamamos \emph{fondo} (del Modelo Estand\'ar).
+    de los eventos producidos por los procesos del Modelo Estand\'ar, a los que llamamos \emph{fondo}.
 
   \item Una parte fundamental de una b\'usqueda es la identificaci\'on de estos observables y la construcci\'on de nuevas
     variables discriminatorias.
@@ -46,7 +48,8 @@
     \end{center}
     }
 
-  \item Estas variables son utilizadas para definir una regi\'on donde la se\~nal domine por sobre el fondo (SR)
+  \item Estas variables son utilizadas para definir una regi\'on donde la se\~nal domine por sobre el fondo que llamamos
+    regi\'on de se\~nal (SR)
 
   \end{itemize}
 
@@ -72,13 +75,14 @@
   \item Es posible estimar el n\'umero esperado de eventos de fondo ($b$) y eventos
     de se\~nal ($s$) utilizando datos simulados con generadores de Monte Carlo.
 
-  \item Para la optimizaci\'on se suele utizar como medida de la sensibilidad, la
+  \item Para la optimizaci\'on se suele utilizar como medida de la sensibilidad, la
     significancia gausiana, $Z$. La expresi\'on m\'as simple es la siguiente:
 
     \begin{equation*}
       Z = s/\sqrt{b}.
     \end{equation*}
-    aunque esta ecuaci\'on es v\'alida cuando $s << b$.
+    %
+    aunque es v\'alida solo en el l\'imite cuando $s << b$.
 
     \item La expresi\'on general es la siguiente:
 
@@ -298,10 +302,11 @@ struct Variable {
 \begin{frame}[fragile]{Implementaci\'on: Fitness}
 
   \begin{itemize}\itemsep0.2cm
-  \item El \emph{fitness} de un individuo va a ser la significancia de la se\~nal dado el conjunto de cortes.
+  \item El \emph{fitness} de un individuo va a ser la significancia de la se\~nal dado el conjunto de cortes representado por el individuo.
   \end{itemize}
 
-  \includegraphics[width=0.6\textwidth]{fitness}
+  %% \includegraphics[width=0.6\textwidth]{fitness}
+  \scalebox{0.6}{\input{fitness.tex}}
 
   \begin{flushleft}
     donde:
@@ -310,241 +315,381 @@ struct Variable {
   \begin{itemize}\itemsep0.2cm
   \item \verb|s_tree|, \verb|b_tree| son \verb|TChain| de se\~nal/fondo respectivamente
   \item \texttt{s} y \texttt{b} es el n\'umero de eventos de se\~nal y fondo
-  \item \texttt{sig} es la significancia calculada a partir de \texttt{s} y \texttt{b}, que va a ser el fitness del individuo.
+  \item \texttt{Z} es la significancia calculada a partir de \texttt{s} y \texttt{b}, que va a ser el fitness del individuo.
   \end{itemize}
 
 \end{frame}
 
-  %%\begin{enumerate}
+%%\begin{enumerate}
 %%   \item Leer archivo de configurari\'on
 %%   %%\item
 %%   \end{enumerate}
 
 
-%% \begin{frame}[fragile]{C\'odigo}
+\begin{frame}[fragile]{C\'odigo}
 
-%%     \begin{itemize}\itemsep0.6cm
-%%     \item \texttt{main.cpp}
-%%     \item \texttt{ga.cpp, ga.h}
-%%       \oneitem{implementaci\'on del algoritmo g\'enetico.}
-%%     \item \texttt{individual.cpp, individual.h}
-%%       \oneitem{implementaci\'on de la clase individuo.}
-%%     \item \texttt{random.cpp, random.h}
-%%       \oneitem{funciones \'utiles para generar numeros aleatorios (usando MT)}
-%%     \item \texttt{significance.cpp, significance.h}
-%%       \oneitem{funciones para calcular significancia.}
-%%     \end{itemize}
+  \begin{flushleft}
+    Estructura del c\'odigo
+  \end{flushleft}
 
-%% \end{frame}
+    \begin{itemize}\itemsep0.6cm
+    \item \texttt{main.cpp}
+    \item \texttt{ga.cpp, ga.h}
+      \oneitem{Implementaci\'on del algoritmo g\'enetico. Todos los par\'ametros son leidos de un archivo de configuraci\'on.}
+    \item \texttt{individual.cpp, individual.h}
+      \oneitem{Implementaci\'on de la clase individuo.}
+    \item \texttt{random.cpp, random.h}
+      \oneitem{Funciones \'utiles para generar numeros aleatorios (usando MT)}
+    \item \texttt{significance.cpp, significance.h}
+      \oneitem{Funciones para calcular significancia.}
+    \end{itemize}
 
-%% \begin{frame}[fragile]{Funciones random}
+    \vspace{0.2cm}
 
-%%   \begin{lstlisting}[language=c++]
-%% #include <random> // random generators
-%% typedef std::mt19937 generator_t;
+    \begin{flushleft}
+      En las siguientes slides se explican las partes principales del c\'odigo.
+    \end{flushleft}
 
-%% // init random generator with seed from the system clock
-%% void init_random()
-%% {
-%%   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-%%   generator.seed(seed);
-%% }
+\end{frame}
 
-%% // get random integer between lower and upper
-%% int get_random_int(int lower, int upper)
-%% {
-%%   std::uniform_int_distribution<int> distribution(lower, upper);
-%%   return distribution(generator);
-%% }
+\begin{frame}[fragile]{Funciones random (\texttt{random.cpp})}
 
-%% // get random float between lower and upper
-%% float get_random_float(float lower, float upper)
-%% {
-%%   std::uniform_real_distribution<double> distribution(lower, upper);
-%%   return distribution(generator);
-%% }
+  \begin{lstlisting}[language=c++]
+#include <random> // random generators
+typedef std::mt19937 generator_t;
 
-%% // get random probability: float between 0 and 1
-%% float get_random_prob()
-%% {
-%%   return get_random_float(0.0, 1.0);
-%% }
-%%   \end{lstlisting}
+// init random generator with seed from the system clock
+void init_random()
+{
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  generator.seed(seed);
+}
 
-%% \end{frame}
+// get random integer between lower and upper
+int get_random_int(int lower, int upper)
+{
+  std::uniform_int_distribution<int> distribution(lower, upper);
+  return distribution(generator);
+}
 
-%% \begin{frame}[fragile]{C\'alculo de significancia}
+// get random float between lower and upper
+float get_random_float(float lower, float upper)
+{
+  std::uniform_real_distribution<double> distribution(lower, upper);
+  return distribution(generator);
+}
 
-%%   \begin{lstlisting}[language=c++]
-%% #include <TMath.h>
+// get random probability: float between 0 and 1
+float get_random_prob()
+{
+  return get_random_float(0.0, 1.0);
+}
+  \end{lstlisting}
 
-%% double get_significance(double s, double b)
-%% {
-%%   if (s < 0 || b < 1)
-%%     return 0.00;
+\end{frame}
 
-%%   double sig_2 =  2 * ( (s + b) * TMath::Log(1 + s/b) - s );
+\begin{frame}[fragile]{C\'alculo de significancia (\texttt{significance.cpp}) }
 
-%%   if (sig_2 < 0.00 || std::isinf(sig_2))
-%%     return 0.00;
+  \begin{lstlisting}[language=c++]
+#include <TMath.h>
 
-%%   return TMath::Sqrt(sig_2);
-%% }
-%%   \end{lstlisting}
+double get_significance(double s, double b)
+{
+  if (s < 0 || b < 1)
+    return 0.00;
 
-%% \end{frame}
+  double sig_2 =  2 * ( (s + b) * TMath::Log(1 + s/b) - s );
 
-%% \begin{frame}[fragile]{Clase Individuo}
+  if (sig_2 < 0.00 || std::isinf(sig_2))
+    return 0.00;
 
-%%   \begin{lstlisting}[language=c++]
-%% class Individual {
+  return TMath::Sqrt(sig_2);
+}
+  \end{lstlisting}
 
-%%  public:
-%%   Individual();
-%%   ~Individual() {};
+\end{frame}
 
-%%   void add_cut(double v) { m_cuts.push_back(v); }
-%%   void set_cut(int idx, double v) { m_cuts[idx] = v; }
+\begin{frame}[fragile]{Clase Individuo (\texttt{individual.h})}
 
-%%   double get_cut(int idx) { return m_cuts[idx]; }
-%%   double* get_cuts();
+  \begin{lstlisting}[language=c++]
+class Individual {
 
-%%   void set_fitness(double f) { m_fitness = f; };
-%%   double get_fitness() { return m_fitness; };
+ public:
+  Individual();
+  ~Individual() {};
 
-%%   Individual* copy();
+  void add_cut(double v) { m_cuts.push_back(v); }
+  void set_cut(int idx, double v) { m_cuts[idx] = v; }
 
-%%  private:
-%%   std::vector<double> m_cuts;
-%%   double m_fitness;
-%% };
-%%   \end{lstlisting}
+  double get_cut(int idx) { return m_cuts[idx]; }
+  double* get_cuts();
 
-%% \end{frame}
+  void set_fitness(double f) { m_fitness = f; };
+  double get_fitness() { return m_fitness; };
+
+  Individual* copy();
+
+ private:
+  std::vector<double> m_cuts;
+  double m_fitness;
+};
+  \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{ga.cpp}}
+
+  \begin{lstlisting}[language=c++]
+    GA::GA(std::string configfile)
+{
+  read_configuration(configfile);
+
+  init_random();
+
+  // output file
+  output.open(m_name+".log");
+
+  // chains
+  m_signal_chain = new TChain(m_signal_treename);
+  m_signal_chain->AddFile(m_signal_file);
+
+  m_background_chain = new TChain(m_background_treename);
+  m_background_chain->AddFile(m_background_file);
 
 
+  // histograms
+  Int_t bins[m_nvars];
+  Double_t xmin[m_nvars];
+  Double_t xmax[m_nvars];
 
-%% \begin{frame}[fragile]{ga.cpp}
+  for (unsigned int i=0; i<m_nvars; i++) {
+    bins[i] = (m_variables[i].max - m_variables[i].min)/m_variables[i].step;
+    xmin[i] = m_variables[i].min;
+    xmax[i] = m_variables[i].max;
+  }
 
-%%   \begin{lstlisting}[language=c++]
-%% void GA::step()
-%% {
-%%   pop_vector children;
-%%   children.clear();
-%%   children.reserve(m_population_size);
+  hist_s   = new THnSparseD("hist_s", "Signal", m_nvars, bins, xmin, xmax);
+  hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
+  hist_sig = new THnSparseD("hist_sig", "Significance", m_nvars, bins, xmin, xmax);
 
-%%   // elitism
-%%   unsigned int elite_size = m_population_size * m_elitism_rate;
+}
+\end{lstlisting}
 
-%%   for (unsigned int i=0; i<elite_size; i++) {
-%%     children.push_back(m_population[i]->copy());
-%%   }
-
-%%   // crossover
-%%   while (children.size() < (m_population_size - elite_size)) {
-
-%%     // select parents
-%%     int p1 = roulette();
-%%     int p2 = roulette();
-
-%%     // crossover parents
-%%     crossover(m_population[p1], m_population[p2], children);
-%%   }
-
-%%   // mutation
-%%   mutate(children);
-
-%%   // update population
-%%   update(children);
-%%   m_generation++;
-
-%%   // evaluate fitness and sort
-%%   evaluate_fitness();
-
-%%   // 7. log, save generation
-%%   log();
-%% }
-%% \end{lstlisting}
-%% \end{frame}
-
-%% \begin{frame}[fragile]{main.cpp}
-
-%%   \begin{lstlisting}[language=c++]
-%% #include <iostream>
-
-%% #include "ga.h"
-
-%% int main(int argc, char *argv[])
-%% {
-
-%%   if (argc < 2) {
-%%     std::cout << "usage: evolve [CONFIG]" << std::endl;
-%%     return 1;
-%%   }
-
-%%   GA ga(argv[1]);
-%%   ga.evolve();
-
-%%   return 0;
-%% }
-%%   \end{lstlisting}
-%% \end{frame}
+\end{frame}
 
 
 
-%% \begin{frame}[fragile]{Ejemplo}
+\begin{frame}[fragile]{\texttt{ga.cpp}: Configuraci\'on}
 
-%%   \oneitem{Algunas variables antes de la optimizaci\'on. \texttt{example.root}}
+  \begin{lstlisting}[language=c++]
+    void GA::read_configuration(TString configfile)
+{
+  TEnv env(configfile.Data());
 
-%%   \includegraphics[width=0.45\textwidth]{ph_pt}
-%%   \includegraphics[width=0.45\textwidth]{met_et}
+  m_name = env.GetValue("AnalysisName", "output");
 
-%%   \includegraphics[width=0.45\textwidth]{jet_n}
-%%   \includegraphics[width=0.45\textwidth]{ht}
+  // GA parameters
+  m_population_size = env.GetValue("GA.PopulationSize", 0);
+  m_generation_max  = env.GetValue("GA.GenerationMax", 10);
+  m_prob_mutation   = env.GetValue("GA.ProbMutation", 0.0);
+  m_prob_crossover  = env.GetValue("GA.ProbCrossOver", 0.0);
+  m_elitism_rate    = env.GetValue("GA.RateElitism", 0.0);
 
-%% \end{frame}
+  // Signal
+  m_signal_file = env.GetValue("Signal.File", "");
+  m_signal_treename = env.GetValue("Signal.TreeName", "");
+
+  // Background
+  m_background_file = env.GetValue("Background.File", "");
+  m_background_treename = env.GetValue("Background.TreeName", "");
+  m_background_syst = env.GetValue("Background.Syst", -1.0);
+
+  // Variables
+  m_nvars = env.GetValue("Variable.N", 0);
+  m_weight = env.GetValue("Variable.Weight", "");
+  m_basesel = env.GetValue("Variable.BaseSelection", "");
+
+  for (unsigned int i=0; i<m_nvars; i++) {
+    TString tmp = Form("Variable%i", i+1);
+
+    Variable var;
+    var.name = env.GetValue(tmp+".Name", "");
+    var.type = env.GetValue(tmp+".Type", ">");
+    var.min  = env.GetValue(tmp+".Min", 0.0);
+    var.max  = env.GetValue(tmp+".Max", 0.0);
+    var.step = env.GetValue(tmp+".Step", 0.0);
+    var.bins = int((var.max-var.min)/var.step);
+
+    m_variables.push_back(var);
+  }
+
+}
+\end{lstlisting}
+
+\end{frame}
 
 
-%% \begin{frame}[fragile]{Ejemplo: Configuraci\'on}
+\begin{frame}[fragile]{\texttt{ga.cpp}: Un paso del algoritmo gen\'etico}
 
-%%   \tiny
-%%   \begin{lstlisting}[language=python]
-%% # Configuration Example
+  \begin{lstlisting}[language=c++]
+void GA::step()
+{
+  pop_vector children;
+  children.clear();
+  children.reserve(m_population_size);
 
-%% AnalysisName: AnalysisExample
+  // elitism
+  unsigned int elite_size = m_population_size * m_elitism_rate;
 
-%% # GA options
-%% GA.PopulationSize: 100
-%% GA.GenerationMax: 100
-%% GA.ProbMutation: 0.10
-%% GA.ProbCrossover: 0.90
-%% GA.RateElitism: 0.10
+  for (unsigned int i=0; i<elite_size; i++) {
+    children.push_back(m_population[i]->copy());
+  }
 
-%% # Signal & Background
-%% Signal.File: example.root
-%% Signal.TreeName: signal
-%% Background.File: example.root
-%% Background.TreeName: background
-%% Background.SystUnc: 0.25
+  // crossover
+  while (children.size() < (m_population_size - elite_size)) {
 
-%% # Variables
-%% Variable.N: 2
-%% Variable.Weight: weight
-%% Variable.BaseSelection: ph_n==1 && el_n==0 && mu_n==0
+    // select parents
+    int p1 = roulette();
+    int p2 = roulette();
 
-%% Variable1.Name: ph_pt
-%% Variable1.Type: >
-%% Variable1.Min: 125.0
-%% Variable1.Max: 500.0
-%% Variable1.Step: 5.0
+    // crossover parents
+    crossover(m_population[p1], m_population[p2], children);
+  }
 
-%% Variable2.Name: met_et
-%% Variable2.Type: >
-%% Variable2.Min: 100.0
-%% Variable2.Max: 1000.0
-%% Variable2.Step: 10.0
-%%   \end{lstlisting}
+  // mutation
+  mutate(children);
 
-%% \end{frame}
+  // update population
+  update(children);
+  m_generation++;
+
+  // evaluate fitness and sort
+  evaluate_fitness();
+
+  // 7. log, save generation
+  log();
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{main.cpp}}
+
+  \begin{lstlisting}[language=c++]
+#include <iostream>
+
+#include "ga.h"
+
+int main(int argc, char *argv[])
+{
+
+  if (argc < 2) {
+    std::cout << "usage: evolve [CONFIG]" << std::endl;
+    return 1;
+  }
+
+  GA ga(argv[1]);
+  ga.evolve();
+
+  return 0;
+}
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo}
+
+  \begin{itemize}\itemsep0.2cm\parskip0.2cm
+  \item Usando los datos de se\~nal y fondo del archivo \texttt{example/data.root} que contienen datos simulados con MC.
+  \item Las distribuciones de algunas variables antes de la optimizaci\'on.
+  \end{itemize}
+
+  \includegraphics[width=0.45\textwidth]{ph_pt}
+  \includegraphics[width=0.45\textwidth]{met_et}
+
+  \includegraphics[width=0.45\textwidth]{jet_n}
+  \includegraphics[width=0.45\textwidth]{ht}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Ejemplo: Configuraci\'on (\texttt{example/example.conf})}
+
+  \tiny
+  \begin{lstlisting}[language=python]
+# Configuration Example
+
+AnalysisName: AnalysisExample
+
+# GA options
+GA.PopulationSize: 100
+GA.GenerationMax: 100
+GA.ProbMutation: 0.10
+GA.ProbCrossover: 0.90
+GA.RateElitism: 0.10
+
+# Signal & Background
+Signal.File: example.root
+Signal.TreeName: signal
+Background.File: example.root
+Background.TreeName: background
+Background.SystUnc: 0.25
+
+# Variables
+Variable.N: 2
+Variable.Weight: weight
+Variable.BaseSelection: ph_n==1 && el_n==0 && mu_n==0
+
+Variable1.Name: ph_pt
+Variable1.Type: >
+Variable1.Min: 125.0
+Variable1.Max: 500.0
+Variable1.Step: 5.0
+
+Variable2.Name: met_et
+Variable2.Type: >
+Variable2.Min: 100.0
+Variable2.Max: 1000.0
+Variable2.Step: 10.0
+  \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}{Ejemplo: Resultados}
+
+  \begin{itemize}\itemsep0.2cm\parskip0.2cm
+  \item Utilizando una poblaci\'on de 100 individuos y 100 generaciones, se alcanza una significancia de
+    $\sim 31.7$ para los siguientes calores:
+
+    \begin{itemize}
+    \item \texttt{ph\_pt} $> 145$
+    \item \texttt{met\_et} $> 300$
+    \item \texttt{jet\_n} $>= 4$
+    \item \texttt{ht} $> 560$
+    \item \texttt{rt2} $< 0.85$
+    \end{itemize}
+
+  \end{itemize}
+
+  \includegraphics[width=0.5\textwidth]{sig_vs_generation.pdf}
+
+\end{frame}
+
+\begin{frame}{Conclusi\'on}
+
+  \begin{itemize}\itemsep0.2cm\parskip0.2cm
+  \item Se implement\'o un programa para optimizar una selecci\'on de b\'usqueda de nueva f\'isica
+    utilizando un algoritmo genetico.
+  \item Para esto se utiliz\'o \texttt{C++} y las librerias de \texttt{ROOT}.
+  \item Se utiliz\'o el programa a modo de prueba en algunos eventos de se\~nal y fondo simulados
+    utilizando generadores de eventos Monte Carlo, dando buenos resultados con un n\'umero
+    peque\~no de iteraciones, compatibles con los encontrados utilizando la optimizaci\'on tradicional.
+
+  \item El codigo puede encontrarse en \href{https://github.com/franaln/evolve}{\texttt{https://github.com/franaln/evolve}}
+
+  \end{itemize}
+
+
+  \end{frame}
+
+
 
 \end{document}
