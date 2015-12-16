@@ -16,8 +16,8 @@ class Individual;
 typedef std::vector<Individual*> pop_vector;
 
 struct Variable {
-  std::string name;
-  std::string type;
+  TString name;
+  TString type;
   double min, max, step;
   int bins;
 };
@@ -25,7 +25,7 @@ struct Variable {
 class GA {
 
  public:
-  GA(std::string);
+  GA(TString);
   ~GA();
 
   void evolve();
