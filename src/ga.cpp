@@ -15,7 +15,7 @@
 #include "random.h"
 #include "significance.h"
 
-GA::GA(std::string configfile)
+GA::GA(TString configfile)
 {
   read_configuration(configfile);
 
