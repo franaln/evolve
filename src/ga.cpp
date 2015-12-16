@@ -31,7 +31,6 @@ GA::GA(std::string configfile)
   m_background_chain = new TChain(m_background_treename);
   m_background_chain->AddFile(m_background_file);
 
-
   // histograms
   Int_t bins[m_nvars];
   Double_t xmin[m_nvars];
@@ -109,7 +108,7 @@ void GA::read_configuration(TString configfile)
 void GA::evolve()
 {
   // create initial population (generation 0)
-  std::cout << "Generation 0 of " <<  m_generation_max << " ..." << std::endl;
+  std::cout << "-- Generation 0 of " <<  m_generation_max << " ..." << std::endl;
   m_generation = 0;
   m_population.resize(m_population_size);
 
@@ -127,7 +126,8 @@ void GA::evolve()
 
     // check if
 
-    std::cout << "Generation " << i << " of " <<  m_generation_max << " ..." << std::endl;
+    std::cout << "-- Generation " << i << " of " <<  m_generation_max << " ..." << std::endl;
+    show_best();
     step();
   }
 
@@ -317,6 +317,16 @@ double GA::get_random_cut(const Variable &var)
   return (var.min + rnd * var.step);
 }
 
+void GA::show_best()
+{
+  for (unsigned int i=0; i<m_nvars; i++) {
+    std::cout << m_population[0]->get_cut(i) << " | ";
+  }
+  std::cout << "Z = " << m_population[0]->get_fitness() << std::endl;
+
+}
+
+
 void GA::log()
 {
   output << "--- Generation " << m_generation << std::endl;
@@ -325,7 +335,7 @@ void GA::log()
     for (unsigned int i=0; i<m_nvars; i++) {
       output << indv->get_cut(i) << " | ";
     }
-    output << indv->get_fitness() << std::endl;
+    output << "Z = " << indv->get_fitness() << std::endl;
   }
 
   output << "---" << std::endl;

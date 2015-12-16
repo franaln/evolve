@@ -60,6 +60,7 @@ class GA {
   void mutate(pop_vector&);
   void update(pop_vector&);
   void log();
+  void show_best();
   void read_configuration(TString);
   void evaluate_fitness();
   double evaluate_individual_fitness(Individual*);
