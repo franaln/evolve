@@ -183,7 +183,6 @@ void GA::evaluate_fitness()
   float fitness;
   for(auto& indv : m_population){
     fitness = evaluate_individual_fitness(indv);
-    indv->set_fitness(fitness);
     m_total_fitness += fitness;
   }
 
@@ -260,6 +259,9 @@ double GA::evaluate_individual_fitness(Individual* indv)
   // if it is already calculated, return significance from histogram
   long bin_sig = hist_sig->GetBin(cuts, false);
   if (bin_sig >= 0) {
+    indv->set_signal(hist_s->GetBinContent(bin_sig));
+    indv->set_background(hist_b->GetBinContent(bin_sig));
+    indv->set_fitness(hist_sig->GetBinContent(bin_sig));
     return hist_sig->GetBinContent(bin_sig);
   }
 
@@ -267,6 +269,9 @@ double GA::evaluate_individual_fitness(Individual* indv)
 
   double s = get_events(m_signal_chain, selection);
   double b = get_events(m_background_chain, selection);
+
+  indv->set_signal(s);
+  indv->set_background(b);
 
   double significance = 0.;
   if (m_background_syst > 0.)
@@ -277,6 +282,8 @@ double GA::evaluate_individual_fitness(Individual* indv)
   hist_s->SetBinContent(hist_s->GetBin(cuts), s);
   hist_b->SetBinContent(hist_b->GetBin(cuts), b);
   hist_sig->SetBinContent(hist_sig->GetBin(cuts), significance);
+
+  indv->set_fitness(significance);
 
   return significance;
 }
@@ -322,7 +329,8 @@ void GA::show_best()
   for (unsigned int i=0; i<m_nvars; i++) {
     std::cout << m_population[0]->get_cut(i) << " | ";
   }
-  std::cout << "Z = " << m_population[0]->get_fitness() << std::endl;
+  std::cout << "S/B = " <<  m_population[0]->get_signal() << "/" << m_population[0]->get_background();
+  std::cout << ", Z = " << m_population[0]->get_fitness() << std::endl;
 
 }
 
