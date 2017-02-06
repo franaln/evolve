@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
     std::cout << "usage: evolve [CONFIG]" << std::endl;
     return 1;
   }
-
+  
+  std::cout << "Using configfile: " << argv[1] << std::endl;
   GA ga(argv[1]);
   ga.evolve();
 

@@ -21,7 +21,7 @@ class Individual {
   double* get_cuts();
 
   void set_fitness(double f) { m_fitness = f; };
-  double get_fitness() { return m_fitness>0 ? m_fitness : 0.; };
+  double get_fitness() { return m_fitness ? m_fitness : 0.0; };
 
   void set_signal(int s) { m_signal = s; };
   void set_background(int b) { m_background = b; };

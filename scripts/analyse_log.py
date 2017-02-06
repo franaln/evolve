@@ -56,7 +56,7 @@ def main():
                 tmp = line.split('|')
 
                 indv = dict()
-                indv['sig'] = float(tmp[-1].strip())
+                indv['sig'] = float(tmp[-1].strip().replace('Z = ', ''))
                 indv['cuts'] = [ float(x.strip()) for x in tmp[:-1] ]
 
                 generations[gen_idx].append(indv)

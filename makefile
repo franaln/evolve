@@ -3,7 +3,7 @@
 CXX		 := g++
 CXXFLAGS := -g -Wall -std=c++11
 
-ROOTLIBS  := $(shell root-config --libs)
+ROOTLIBS  := $(shell root-config --libs) -lRooStats
 ROOTFLAGS := $(shell root-config --cflags)
 
 OBJDIR := obj

@@ -15,9 +15,12 @@
 #include "random.h"
 #include "significance.h"
 
+#define ZERO 0.001
+
 GA::GA(TString configfile)
 {
   read_configuration(configfile);
+  print_configuration();
 
   init_random();
 
@@ -82,7 +85,12 @@ void GA::read_configuration(TString configfile)
   // Background
   m_background_file = env.GetValue("Background.File", "");
   m_background_treename = env.GetValue("Background.TreeName", "");
-  m_background_syst = env.GetValue("Background.Syst", -1.0);
+
+  // Fitness options
+  m_opt_background_syst = env.GetValue("Opt.BackgroundSystUnc", -1.0);
+  m_opt_background_min  = env.GetValue("Opt.BackgroundMin", 0.0);
+  m_opt_background_max  = env.GetValue("Opt.BackgroundMax", 99999999999.0);
+  m_opt_efficiency_min  = env.GetValue("Opt.EfficiencyMin", 0.0);
 
   // Variables
   m_nvars = env.GetValue("Variable.N", 0);
@@ -94,14 +102,69 @@ void GA::read_configuration(TString configfile)
 
     Variable var;
     var.name = env.GetValue(tmp+".Name", "");
-    var.type = env.GetValue(tmp+".Type", ">");
+    var.type = env.GetValue(tmp+".Type", "F");
+    var.cut  = env.GetValue(tmp+".Cut", ">");
     var.min  = env.GetValue(tmp+".Min", 0.0);
     var.max  = env.GetValue(tmp+".Max", 0.0);
     var.step = env.GetValue(tmp+".Step", 0.0);
     var.bins = int((var.max-var.min)/var.step);
-
+    
     m_variables.push_back(var);
   }
+
+}
+
+void GA::print_configuration()
+{
+
+  std::cout << "-- Configuration" << std::endl;
+  std::cout << "AnalysisName: " << m_name << std::endl;
+
+  // GA parameters
+  std::cout << "-----------" << std::endl;
+  std::cout << "GA.PopulationSize: " << m_population_size << std::endl;
+  std::cout << "GA.GenerationMax: "  << m_generation_max  << std::endl;
+  std::cout << "GA.ProbMutation: "   << m_prob_mutation   << std::endl;
+  std::cout << "GA.ProbCrossOver: "  << m_prob_crossover  << std::endl;
+  std::cout << "GA.RateElitism: "     << m_elitism_rate    << std::endl;
+
+  // Signal
+  std::cout << "-----------" << std::endl;
+  std::cout << "Signal.File: " << m_signal_file << std::endl;
+  std::cout << "Signal.TreeName: " << m_signal_treename << std::endl;
+
+  // Background
+  std::cout << "-----------" << std::endl;
+  std::cout << "Background.File: " << m_background_file << std::endl;
+  std::cout << "Background.TreeName: " << m_background_treename << std::endl;
+
+  // Fitness options
+  std::cout << "-----------" << std::endl;
+  std::cout << "Opt.BackgroundSystUnc: " << m_opt_background_syst << std::endl;
+  std::cout << "Opt.BackgroundMin: "     << m_opt_background_min  << std::endl;
+  std::cout << "Opt.BackgroundMax: "     << m_opt_background_max  << std::endl;
+  std::cout << "Opt.EfficiencyMin: "     << m_opt_efficiency_min  << std::endl;
+  std::cout << "-----------" << std::endl;
+
+  // Variables
+  // std::cout << "-----------" << std::endl;
+  // m_nvars = env.GetValue("Variable.N", 0);
+  // m_weight = env.GetValue("Variable.Weight", "");
+  // m_basesel = env.GetValue("Variable.BaseSelection", "");
+
+  // for (unsigned int i=0; i<m_nvars; i++) {
+  //   TString tmp = Form("Variable%i", i+1);
+
+  //   Variable var;
+  //   var.name = env.GetValue(tmp+".Name", "");
+  //   var.type = env.GetValue(tmp+".Type", ">");
+  //   var.min  = env.GetValue(tmp+".Min", 0.0);
+  //   var.max  = env.GetValue(tmp+".Max", 0.0);
+  //   var.step = env.GetValue(tmp+".Step", 0.0);
+  //   var.bins = int((var.max-var.min)/var.step);
+
+  //   m_variables.push_back(var);
+  // }
 
 }
 
@@ -123,9 +186,6 @@ void GA::evolve()
 
   // loop step until condition is satisfied
   for (unsigned int i=1; i<m_generation_max; i++){
-
-    // check if
-
     std::cout << "-- Generation " << i << " of " <<  m_generation_max << " ..." << std::endl;
     show_best();
     step();
@@ -259,10 +319,20 @@ double GA::evaluate_individual_fitness(Individual* indv)
   // if it is already calculated, return significance from histogram
   long bin_sig = hist_sig->GetBin(cuts, false);
   if (bin_sig >= 0) {
-    indv->set_signal(hist_s->GetBinContent(bin_sig));
-    indv->set_background(hist_b->GetBinContent(bin_sig));
-    indv->set_fitness(hist_sig->GetBinContent(bin_sig));
-    return hist_sig->GetBinContent(bin_sig);
+
+    double s = hist_s->GetBinContent(bin_sig);
+    indv->set_signal(s);
+
+    double b = hist_b->GetBinContent(bin_sig);
+    indv->set_background(b);
+
+    double significance = 0.;
+    if (s != 0 &&  b < m_opt_background_max)
+      significance = hist_sig->GetBinContent(bin_sig);
+
+    indv->set_fitness(significance);
+
+    return significance;
   }
 
   TString selection = get_selection(indv);
@@ -274,10 +344,14 @@ double GA::evaluate_individual_fitness(Individual* indv)
   indv->set_background(b);
 
   double significance = 0.;
-  if (m_background_syst > 0.)
-    significance = get_significance(s, b, m_background_syst);
+  if (m_opt_background_syst > 0.)
+    significance = get_significance(s, b, m_opt_background_syst);
   else
     significance = get_significance(s, b);
+
+
+  if (s < ZERO || b < ZERO || b < m_opt_background_min || b > m_opt_background_max)
+    significance = 0.;
 
   hist_s->SetBinContent(hist_s->GetBin(cuts), s);
   hist_b->SetBinContent(hist_b->GetBin(cuts), b);
@@ -295,11 +369,16 @@ TString GA::get_selection(Individual *indv)
   if (!m_basesel.IsNull())
     selection = m_basesel + "&&";
 
-  for (unsigned int i=0; i<m_nvars; i++) {
-    selection += m_variables[i].name;
-    selection += m_variables[i].type;
-    selection += Form("%f", indv->get_cut(i));
-    if(i<m_nvars-1) selection += " && ";
+  int index = 0;
+  for (auto var : m_variables) {
+    selection += var.name;
+    selection += var.cut;
+    if (var.type == "F")
+      selection += Form("%f", indv->get_cut(index));
+    else
+      selection += Form("%i", int(indv->get_cut(index)));
+    if(index<m_nvars-1) selection += " && ";
+    index ++;
   }
 
   return selection;
@@ -320,7 +399,7 @@ double GA::get_events(TChain *chain, TString selection)
 double GA::get_random_cut(const Variable &var)
 {
   int rnd = get_random_int(0, var.bins);
-
+  
   return (var.min + rnd * var.step);
 }
 
@@ -343,7 +422,8 @@ void GA::log()
     for (unsigned int i=0; i<m_nvars; i++) {
       output << indv->get_cut(i) << " | ";
     }
-    output << "Z = " << indv->get_fitness() << std::endl;
+    output << "S/B = " <<  indv->get_signal() << "/" << indv->get_background();
+    output << ", Z = " << indv->get_fitness() << std::endl;
   }
 
   output << "---" << std::endl;
