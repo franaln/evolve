@@ -18,6 +18,7 @@ typedef std::vector<Individual*> pop_vector;
 struct Variable {
   TString name;
   TString type;
+  TString cut;
   double min, max, step;
   int bins;
 };
@@ -48,6 +49,7 @@ class GA {
   std::vector<Variable> m_variables;
 
   double m_opt_background_syst;
+  double m_opt_background_min;
   double m_opt_background_max;
   double m_opt_efficiency_min;
 
