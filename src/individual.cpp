@@ -12,7 +12,7 @@ bool sort_fitness (Individual *i, Individual *j)
 
 Individual::Individual()
 {
-  m_fitness = 0;
+  m_fitness = 0.;
   m_cuts.clear();
 }
 

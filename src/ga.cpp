@@ -15,9 +15,12 @@
 #include "random.h"
 #include "significance.h"
 
+#define ZERO 0.001
+
 GA::GA(TString configfile)
 {
   read_configuration(configfile);
+  print_configuration();
 
   init_random();
 
@@ -82,7 +85,11 @@ void GA::read_configuration(TString configfile)
   // Background
   m_background_file = env.GetValue("Background.File", "");
   m_background_treename = env.GetValue("Background.TreeName", "");
-  m_background_syst = env.GetValue("Background.Syst", -1.0);
+
+  // Fitness options
+  m_opt_background_syst = env.GetValue("Opt.BackgroundSystUnc", -1.0);
+  m_opt_background_max  = env.GetValue("Opt.BackgroundMax", -1.0);
+  m_opt_efficiency_min  = env.GetValue("Opt.EfficiencyMin", 0.0);
 
   // Variables
   m_nvars = env.GetValue("Variable.N", 0);
@@ -102,6 +109,53 @@ void GA::read_configuration(TString configfile)
 
     m_variables.push_back(var);
   }
+
+}
+
+void GA::print_configuration()
+{
+
+  std::cout << "-- Configuration" << std::endl;
+  std::cout << "AnalysisName: " << m_name << std::endl;
+
+  // GA parameters
+  std::cout << "GA.PopulationSize: " << m_population_size << std::endl;
+  std::cout << "GA.GenerationMax: "  << m_generation_max  << std::endl;
+  std::cout << "GA.ProbMutation: "   << m_prob_mutation   << std::endl;
+  std::cout << "GA.ProbCrossOver: "  << m_prob_crossover  << std::endl;
+  std::cout << "GA.RateElitism:"     << m_elitism_rate    << std::endl;
+
+  // Signal
+  std::cout << "Signal.File: " << m_signal_file << std::endl;
+  std::cout << "Signal.TreeName: " << m_signal_treename << std::endl;
+
+  // Background
+  std::cout << "Background.File: " << m_background_file << std::endl;
+  std::cout << "Background.TreeName: " << m_background_treename << std::endl;
+
+  // Fitness options
+  std::cout << "Opt.BackgroundSystUnc: " << m_opt_background_syst << std::endl;
+  std::cout << "Opt.BackgroundMax: "     << m_opt_background_max  << std::endl;
+  std::cout << "Opt.EfficiencyMin: "     << m_opt_efficiency_min  << std::endl;
+
+  // // Variables
+  // m_nvars = env.GetValue("Variable.N", 0);
+  // m_weight = env.GetValue("Variable.Weight", "");
+  // m_basesel = env.GetValue("Variable.BaseSelection", "");
+
+  // for (unsigned int i=0; i<m_nvars; i++) {
+  //   TString tmp = Form("Variable%i", i+1);
+
+  //   Variable var;
+  //   var.name = env.GetValue(tmp+".Name", "");
+  //   var.type = env.GetValue(tmp+".Type", ">");
+  //   var.min  = env.GetValue(tmp+".Min", 0.0);
+  //   var.max  = env.GetValue(tmp+".Max", 0.0);
+  //   var.step = env.GetValue(tmp+".Step", 0.0);
+  //   var.bins = int((var.max-var.min)/var.step);
+
+  //   m_variables.push_back(var);
+  // }
 
 }
 
@@ -259,30 +313,44 @@ double GA::evaluate_individual_fitness(Individual* indv)
   // if it is already calculated, return significance from histogram
   long bin_sig = hist_sig->GetBin(cuts, false);
   if (bin_sig >= 0) {
-    indv->set_signal(hist_s->GetBinContent(bin_sig));
-    indv->set_background(hist_b->GetBinContent(bin_sig));
-    indv->set_fitness(hist_sig->GetBinContent(bin_sig));
-    return hist_sig->GetBinContent(bin_sig);
+
+    double s = hist_s->GetBinContent(bin_sig);
+    indv->set_signal(s);
+
+    double b = hist_b->GetBinContent(bin_sig);
+    indv->set_background(b);
+
+    double significance = 0.;
+    if (s != 0 &&  b < m_opt_background_max)
+      significance = hist_sig->GetBinContent(bin_sig);
+
+    indv->set_fitness(significance);
+
+    return significance;
   }
 
+  // Calculate significance
   TString selection = get_selection(indv);
 
-  double s = get_events(m_signal_chain, selection);
+  double s = get_events(m_signal_chain,     selection);
   double b = get_events(m_background_chain, selection);
 
   indv->set_signal(s);
   indv->set_background(b);
 
   double significance = 0.;
-  if (m_background_syst > 0.)
-    significance = get_significance(s, b, m_background_syst);
+  if (m_opt_background_syst > 0.)
+    significance = get_significance(s, b, m_opt_background_syst);
   else
     significance = get_significance(s, b);
 
   hist_s->SetBinContent(hist_s->GetBin(cuts), s);
   hist_b->SetBinContent(hist_b->GetBin(cuts), b);
-  hist_sig->SetBinContent(hist_sig->GetBin(cuts), significance);
 
+  if (s < ZERO || b > m_opt_background_max || b < ZERO)
+    significance = 0.;
+
+  hist_sig->SetBinContent(hist_sig->GetBin(cuts), significance);
   indv->set_fitness(significance);
 
   return significance;
@@ -343,7 +411,8 @@ void GA::log()
     for (unsigned int i=0; i<m_nvars; i++) {
       output << indv->get_cut(i) << " | ";
     }
-    output << "Z = " << indv->get_fitness() << std::endl;
+    output << "S/B = " <<  indv->get_signal() << "/" << indv->get_background();
+    output << ", Z = " << indv->get_fitness() << std::endl;
   }
 
   output << "---" << std::endl;
