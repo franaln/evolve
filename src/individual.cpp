@@ -10,9 +10,11 @@ bool sort_fitness (Individual *i, Individual *j)
   return (i->get_fitness() > j->get_fitness());
 }
 
-Individual::Individual()
+Individual::Individual() :
+  m_signal(0.),
+  m_background(0.),
+  m_fitness(0.)
 {
-  m_fitness = 0.;
   m_cuts.clear();
 }
 

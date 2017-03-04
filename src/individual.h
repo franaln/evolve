@@ -23,19 +23,19 @@ class Individual {
   void set_fitness(double f) { m_fitness = f; };
   double get_fitness() { return m_fitness>0. ? m_fitness : 0.; };
 
-  void set_signal(int s) { m_signal = s; };
-  void set_background(int b) { m_background = b; };
+  void set_signal(double s) { m_signal = s; };
+  void set_background(double b) { m_background = b; };
 
-  int get_signal() { return m_signal; };
-  int get_background() { return m_background; };
+  double get_signal() { return m_signal; };
+  double get_background() { return m_background; };
 
   Individual* copy();
 
  private:
   std::vector<double> m_cuts;
 
-  int m_signal;
-  int m_background;
+  double m_signal;
+  double m_background;
   double m_fitness;
 };
 
