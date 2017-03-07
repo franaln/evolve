@@ -30,7 +30,7 @@ double get_significance(double s, double b, double sb)
   if (s < 0. || b < 0.)
     return 0.00;
 
-  sb = b * sb;   // background uncertainty (sb is given as percentage)
+  sb = b * sb;   // background uncertainty (sb is the fraction of b)
 
   double b_2  = TMath::Power(b, 2);
   double sb_2 = TMath::Power(sb, 2);

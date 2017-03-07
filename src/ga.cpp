@@ -9,6 +9,9 @@
 #include <TEnv.h>
 #include <TFile.h>
 #include <TH1D.h>
+#include <TGraph.h>
+#include <TCanvas.h>
+#include <TLegend.h>
 
 #include "ga.h"
 #include "individual.h"
@@ -53,10 +56,6 @@ GA::GA(TString configfile)
 
 GA::~GA()
 {
-  save_histograms();
-
-  output.close();
-
   for(auto& ind : m_population){
     delete ind;
   }
@@ -78,19 +77,20 @@ void GA::read_configuration(TString configfile)
   m_prob_crossover  = env.GetValue("GA.ProbCrossOver", 0.0);
   m_elitism_rate    = env.GetValue("GA.RateElitism", 0.0);
 
-  // Signal
-  m_signal_file = env.GetValue("Signal.File", "");
-  m_signal_treename = env.GetValue("Signal.TreeName", "");
-
-  // Background
-  m_background_file = env.GetValue("Background.File", "");
-  m_background_treename = env.GetValue("Background.TreeName", "");
-
   // Fitness options
   m_opt_background_syst = env.GetValue("Opt.BackgroundSystUnc", -1.0);
   m_opt_background_min  = env.GetValue("Opt.BackgroundMin", 0.0);
   m_opt_background_max  = env.GetValue("Opt.BackgroundMax", 99999999999.0);
   m_opt_efficiency_min  = env.GetValue("Opt.EfficiencyMin", 0.0);
+  m_opt_significance_target = env.GetValue("Opt.SignificanceTarget", -1.0);
+
+  // Files/Trees
+  m_signal_file = env.GetValue("File.Signal", "");
+  m_signal_treename = env.GetValue("File.SignalTree", "");
+
+  m_background_file = env.GetValue("File.Background", "");
+  m_background_treename = env.GetValue("File.BackgroundTree", "");
+
 
   // Variables
   m_nvars = env.GetValue("Variable.N", 0);
@@ -121,7 +121,6 @@ void GA::print_configuration()
   std::cout << "AnalysisName: " << m_name << std::endl;
 
   // GA parameters
-
   std::cout << "-----------" << std::endl;
   std::cout << "GA.PopulationSize: " << m_population_size << std::endl;
   std::cout << "GA.GenerationMax: "  << m_generation_max  << std::endl;
@@ -129,22 +128,19 @@ void GA::print_configuration()
   std::cout << "GA.ProbCrossOver: "  << m_prob_crossover  << std::endl;
   std::cout << "GA.RateElitism: "     << m_elitism_rate    << std::endl;
 
-  // Signal
-  std::cout << "-----------" << std::endl;
-  std::cout << "Signal.File: " << m_signal_file << std::endl;
-  std::cout << "Signal.TreeName: " << m_signal_treename << std::endl;
-
-  // Background
-  std::cout << "-----------" << std::endl;
-  std::cout << "Background.File: " << m_background_file << std::endl;
-  std::cout << "Background.TreeName: " << m_background_treename << std::endl;
-
   // Fitness options
   std::cout << "-----------" << std::endl;
-  std::cout << "Opt.BackgroundSystUnc: " << m_opt_background_syst << std::endl;
   std::cout << "Opt.BackgroundMin: "     << m_opt_background_min  << std::endl;
   std::cout << "Opt.BackgroundMax: "     << m_opt_background_max  << std::endl;
+  std::cout << "Opt.BackgroundSystUnc: " << m_opt_background_syst << std::endl;
   std::cout << "Opt.EfficiencyMin: "     << m_opt_efficiency_min  << std::endl;
+
+  // Signal
+  std::cout << "-----------" << std::endl;
+  std::cout << "File.Signal:         " << m_signal_file << std::endl;
+  std::cout << "File.SignalTree:     " << m_signal_treename << std::endl;
+  std::cout << "File.Background:     " << m_background_file << std::endl;
+  std::cout << "File.BackgroundTree: " << m_background_treename << std::endl;
   std::cout << "-----------" << std::endl;
 
   // Variables
@@ -169,6 +165,26 @@ void GA::print_configuration()
 
 }
 
+bool GA::check_end_condition()
+{
+  // do at least one evolution
+  if (m_generation < 1)
+    return true;
+
+  // max number of generations
+  if (m_generation > m_generation_max)
+    return false;
+
+  // significance above number
+  if (m_opt_significance_target > 0 && m_population[0]->get_fitness() > m_opt_significance_target)
+    return false;
+
+  // stall generation
+
+
+  return true;
+}
+
 void GA::evolve()
 {
   // create initial population (generation 0)
@@ -186,8 +202,9 @@ void GA::evolve()
   evaluate_fitness();
 
   // loop step until condition is satisfied
-  for (unsigned int i=1; i<m_generation_max; i++){
-    std::cout << "-- Generation " << i << " of " <<  m_generation_max << " ..." << std::endl;
+  while (check_end_condition()) {
+    m_generation++;
+    std::cout << "-- Generation " << m_generation << " of " <<  m_generation_max << " ..." << std::endl;
     show_best();
     step();
   }
@@ -197,6 +214,11 @@ void GA::evolve()
     total_calc *= var.bins;
   }
   std::cout << "Number of calculations = " << hist_sig->GetNbins() << " of " << total_calc << std::endl;
+
+  // make plots
+  std::cout << "Doing some plots..." << std::endl;
+  plots();
+
 }
 
 void GA::step()
@@ -228,13 +250,15 @@ void GA::step()
 
   // update population
   update(children);
-  m_generation++;
 
   // evaluate fitness and sort
   evaluate_fitness();
 
   // log, save generation
   log();
+
+  save_histograms();
+  output.close();
 }
 
 void GA::evaluate_fitness()
@@ -250,6 +274,7 @@ void GA::evaluate_fitness()
   // sort individuals by fitness
   std::sort(m_population.begin(), m_population.end(), sort_fitness);
 
+  g_gen.push_back(m_generation);
   g_best.push_back(m_population[0]->get_fitness());
   g_mean.push_back(m_total_fitness/m_population_size);
 }
@@ -357,11 +382,8 @@ double GA::evaluate_individual_fitness(Individual* indv)
 
   hist_s->SetBinContent(hist_s->GetBin(cuts), s);
   hist_b->SetBinContent(hist_b->GetBin(cuts), b);
-
-  if (s < ZERO || b > m_opt_background_max || b < ZERO)
-    significance = 0.;
-
   hist_sig->SetBinContent(hist_sig->GetBin(cuts), significance);
+
   indv->set_fitness(significance);
 
   return significance;
@@ -443,4 +465,45 @@ void GA::save_histograms()
   hist_sig->Write("significance");
 
   f.Close();
+}
+
+void GA::plots()
+{
+  plot_significance_vs_generation();
+}
+
+
+void GA::plot_significance_vs_generation()
+{
+  TGraph *gr_best = new TGraph(g_gen.size(), &g_gen[0], &g_best[0]);
+  TGraph *gr_mean = new TGraph(g_gen.size(), &g_gen[0], &g_mean[0]);
+
+  gr_best->SetLineColor(kRed);
+  gr_mean->SetLineColor(kBlue);
+  gr_best->SetMarkerColor(kRed);
+  gr_mean->SetMarkerColor(kBlue);
+
+  gr_best->SetLineWidth(2);
+  gr_mean->SetLineWidth(2);
+  gr_best->SetFillColor(0);
+  gr_mean->SetFillColor(0);
+  gr_best->SetMarkerStyle(20);
+  gr_mean->SetMarkerStyle(20);
+
+  gr_best->SetTitle("");
+  gr_best->GetYaxis()->SetTitle("Significance");
+  gr_best->GetXaxis()->SetTitle("Generation");
+
+  TCanvas *c1 = new TCanvas();
+
+  gr_best->Draw("PAL");
+  gr_mean->Draw("PL");
+
+  TLegend *leg = new TLegend(0.75, 0.75, 0.88, 0.88);
+  leg->SetBorderSize(0);
+  leg->AddEntry(gr_best, "Best");
+  leg->AddEntry(gr_mean, "Mean");
+  leg->Draw();
+
+  c1->Print("sig_vs_generation.pdf");
 }

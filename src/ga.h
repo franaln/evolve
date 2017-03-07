@@ -52,15 +52,19 @@ class GA {
   double m_opt_background_min;
   double m_opt_background_max;
   double m_opt_efficiency_min;
+  double m_opt_significance_target;
 
+  pop_vector m_last_population;
   pop_vector m_population;
+
   double m_total_fitness;
   TChain *m_signal_chain, *m_background_chain;
   THnSparseD *hist_s, *hist_b, *hist_sig;
-  std::vector<double> g_best, g_mean;
+  std::vector<double> g_gen, g_best, g_mean;
   std::ofstream output;
 
   // fns
+  bool check_end_condition();
   void step();
   void select_parents();
   int roulette();
@@ -78,5 +82,7 @@ class GA {
   double get_random_cut(const Variable &var);
   void save_histograms();
 
+  void plots();
+  void plot_significance_vs_generation();
 };
 #endif
