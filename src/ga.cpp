@@ -33,11 +33,11 @@ GA::GA(TString configfile)
   // chains
   m_signal_chain = new TChain(m_signal_treename);
   for (auto signal_file : m_signal_files)
-    m_signal_chain->AddFile(signal_file);
+    m_signal_chain->Add(signal_file);
 
   m_background_chain = new TChain(m_background_treename);
   for (auto bkg_file : m_background_files)
-    m_background_chain->AddFile(bkg_file);
+    m_background_chain->Add(bkg_file);
 
   // histograms
   Int_t bins[m_nvars];
@@ -226,23 +226,26 @@ void GA::evolve()
     }
   }
   evaluate_fitness();
+  show_best();
 
   // loop step until condition is satisfied
   while (check_end_condition()) {
     m_generation++;
     std::cout << "-- Generation " << m_generation << " of " <<  m_generation_max << " ..." << std::endl;
-    show_best();
     step();
+    show_best();
   }
+
+  std::cout << std::endl;
 
   long total_calc = 1;
   for (auto &var : m_variables) {
     total_calc *= var.bins;
   }
-  std::cout << "Number of calculations = " << hist_sig->GetNbins() << " of " << total_calc << std::endl;
+  std::cout << "-- Number of calculations = " << hist_sig->GetNbins() << " of " << total_calc << std::endl;
 
   // make plots
-  std::cout << "Doing some plots..." << std::endl;
+  std::cout << "-- Doing some plots..." << std::endl;
   plots();
 
 }
@@ -470,6 +473,7 @@ double GA::get_random_cut(const Variable &var)
 
 void GA::show_best()
 {
+  std::cout << "Best: ";
   for (unsigned int i=0; i<m_nvars; i++) {
     std::cout << m_population[0]->get_cut(i) << " | ";
   }
