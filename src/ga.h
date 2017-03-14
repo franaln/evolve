@@ -76,6 +76,8 @@ class GA {
   void crossover(Individual*, Individual*, pop_vector&);
   void mutate(pop_vector&);
   void update(pop_vector&);
+
+  void show_progress(int, int);
   void log();
   void show_best();
   void evaluate_fitness();

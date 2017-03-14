@@ -7,7 +7,7 @@
 double get_sb(double s, double b)
 {
   if (b > 0.)
-    return s/(s+b);
+    return s/b;
 
   return 0.;
 }

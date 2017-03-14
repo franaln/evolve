@@ -137,6 +137,8 @@ void GA::read_configuration(TString configfile)
 void GA::print_configuration()
 {
 
+  std::cout << std::endl;
+  std::cout << "------------------" << std::endl;
   std::cout << "-- Configuration" << std::endl;
   std::cout << "AnalysisName: " << m_name << std::endl;
 
@@ -164,6 +166,8 @@ void GA::print_configuration()
     std::cout << "File.Background:     " << bkg_file << std::endl;
   std::cout << "File.BackgroundTree: " << m_background_treename << std::endl;
   std::cout << "-----------" << std::endl;
+  std::cout << "------------------" << std::endl;
+  std::cout << std::endl << std::endl;
 
   // Variables
   // std::cout << "-----------" << std::endl;
@@ -288,9 +292,14 @@ void GA::evaluate_fitness()
   // evaluate fitness for all individuals
   m_total_fitness = 0.0;
   float fitness;
+
+  unsigned int indv_idx = 0;
   for(auto& indv : m_population){
     fitness = evaluate_individual_fitness(indv);
     m_total_fitness += fitness;
+
+    indv_idx++;
+    show_progress(indv_idx, m_population.size());
   }
 
   // sort individuals by fitness
@@ -469,6 +478,26 @@ void GA::show_best()
 
 }
 
+
+void GA::show_progress(int progress, int total)
+{
+  int bar_width = 80;
+
+  float perc = progress/float(total);
+
+  std::cout << "[";
+  int pos = bar_width * perc;
+  for (int i = 0; i < bar_width; ++i) {
+    if (i < pos) std::cout << "=";
+    else if (i == pos) std::cout << ">";
+    else std::cout << " ";
+  }
+  std::cout << "] " << int(perc * 100.0) << " %\r";
+  std::cout.flush();
+
+  if (progress == total)
+    std::cout << std::endl;
+}
 
 void GA::log()
 {
