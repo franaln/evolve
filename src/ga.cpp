@@ -32,10 +32,12 @@ GA::GA(TString configfile)
 
   // chains
   m_signal_chain = new TChain(m_signal_treename);
-  m_signal_chain->AddFile(m_signal_file);
+  for (auto signal_file : m_signal_files)
+    m_signal_chain->AddFile(signal_file);
 
   m_background_chain = new TChain(m_background_treename);
-  m_background_chain->AddFile(m_background_file);
+  for (auto bkg_file : m_background_files)
+    m_background_chain->AddFile(bkg_file);
 
   // histograms
   Int_t bins[m_nvars];
@@ -64,6 +66,23 @@ GA::~GA()
   delete m_background_chain;
 }
 
+std::vector<TString> GA::split_string(TString line)
+{
+
+  std::vector<TString> vtokens;
+  TObjArray* tokens = TString(line).Tokenize(",");
+
+  if(tokens->GetEntriesFast()) {
+    TIter iString(tokens);
+    TObjString* os=0;
+    while ((os=(TObjString*)iString())) {
+      vtokens.push_back( os->GetString() );
+    }
+  }
+  delete tokens;
+  return vtokens;
+}
+
 void GA::read_configuration(TString configfile)
 {
   TEnv env(configfile.Data());
@@ -78,17 +97,18 @@ void GA::read_configuration(TString configfile)
   m_elitism_rate    = env.GetValue("GA.RateElitism", 0.0);
 
   // Fitness options
-  m_opt_background_syst = env.GetValue("Opt.BackgroundSystUnc", -1.0);
+  m_opt_type = env.GetValue("Opt.SignificanceType", "ExpZ"); // SB or ExpZ
+  m_opt_significance_target = env.GetValue("Opt.SignificanceTarget", -1.0);
+  m_opt_background_syst = env.GetValue("Opt.BackgroundSystUnc", 0.01);
   m_opt_background_min  = env.GetValue("Opt.BackgroundMin", 0.0);
   m_opt_background_max  = env.GetValue("Opt.BackgroundMax", 99999999999.0);
   m_opt_efficiency_min  = env.GetValue("Opt.EfficiencyMin", 0.0);
-  m_opt_significance_target = env.GetValue("Opt.SignificanceTarget", -1.0);
 
   // Files/Trees
-  m_signal_file = env.GetValue("File.Signal", "");
+  m_signal_files = split_string(env.GetValue("File.Signal", ""));
   m_signal_treename = env.GetValue("File.SignalTree", "");
 
-  m_background_file = env.GetValue("File.Background", "");
+  m_background_files = split_string(env.GetValue("File.Background", ""));
   m_background_treename = env.GetValue("File.BackgroundTree", "");
 
 
@@ -137,9 +157,11 @@ void GA::print_configuration()
 
   // Signal
   std::cout << "-----------" << std::endl;
-  std::cout << "File.Signal:         " << m_signal_file << std::endl;
+  for (auto signal_file : m_signal_files)
+    std::cout << "File.Signal:         " << signal_file << std::endl;
   std::cout << "File.SignalTree:     " << m_signal_treename << std::endl;
-  std::cout << "File.Background:     " << m_background_file << std::endl;
+  for (auto bkg_file : m_background_files)
+    std::cout << "File.Background:     " << bkg_file << std::endl;
   std::cout << "File.BackgroundTree: " << m_background_treename << std::endl;
   std::cout << "-----------" << std::endl;
 
@@ -353,7 +375,9 @@ double GA::evaluate_individual_fitness(Individual* indv)
     indv->set_background(b);
 
     double significance = 0.;
-    if (s != 0 &&  b < m_opt_background_max)
+    if (s < ZERO || b < ZERO || b < m_opt_background_min || b > m_opt_background_max)
+      significance = 0.;
+    else
       significance = hist_sig->GetBinContent(bin_sig);
 
     indv->set_fitness(significance);
@@ -367,14 +391,19 @@ double GA::evaluate_individual_fitness(Individual* indv)
   double s = get_events(m_signal_chain,     selection);
   double b = get_events(m_background_chain, selection);
 
+  if (s < 0)
+    s = 0.;
+  if (b < 0)
+    b = 0.;
+
   indv->set_signal(s);
   indv->set_background(b);
 
   double significance = 0.;
-  if (m_opt_background_syst > 0.)
+  if (m_opt_type == "ExpZ")
     significance = get_significance(s, b, m_opt_background_syst);
-  else
-    significance = get_significance(s, b);
+  else if (m_opt_type == "SB")
+    significance = get_sb(s, b);
 
 
   if (s < ZERO || b < ZERO || b < m_opt_background_min || b > m_opt_background_max)

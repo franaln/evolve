@@ -34,8 +34,8 @@ class GA {
  private:
   TString m_name;
 
-  TString m_signal_file, m_signal_treename;
-  TString m_background_file, m_background_treename;
+  TString m_signal_treename, m_background_treename;
+  std::vector<TString> m_signal_files, m_background_files;
 
   unsigned long m_population_size;
   unsigned long m_generation;
@@ -48,6 +48,7 @@ class GA {
   TString m_basesel;
   std::vector<Variable> m_variables;
 
+  std::string m_opt_type; // use enum instead!
   double m_opt_background_syst;
   double m_opt_background_min;
   double m_opt_background_max;
@@ -64,6 +65,10 @@ class GA {
   std::ofstream output;
 
   // fns
+  std::vector<TString> split_string(TString);
+  void read_configuration(TString);
+  void print_configuration();
+
   bool check_end_condition();
   void step();
   void select_parents();
@@ -73,8 +78,6 @@ class GA {
   void update(pop_vector&);
   void log();
   void show_best();
-  void read_configuration(TString);
-  void print_configuration();
   void evaluate_fitness();
   double evaluate_individual_fitness(Individual*);
   TString get_selection(Individual*);
