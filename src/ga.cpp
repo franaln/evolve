@@ -39,6 +39,9 @@ GA::GA(TString configfile)
   for (auto bkg_file : m_background_files)
     m_background_chain->Add(bkg_file);
 
+  // init some variables
+  m_stall_generation = 0;
+
   // histograms
   Int_t bins[m_nvars];
   Double_t xmin[m_nvars];
@@ -50,16 +53,20 @@ GA::GA(TString configfile)
     xmax[i] = m_variables[i].max;
   }
 
-  hist_s   = new THnSparseD("hist_s", "Signal", m_nvars, bins, xmin, xmax);
-  hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
+  hist_s = new THnSparseD("hist_s", "Signal", m_nvars, bins, xmin, xmax);
+  hist_b = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
   hist_z = new THnSparseD("hist_z", "Significance", m_nvars, bins, xmin, xmax);
 
 }
 
 GA::~GA()
 {
-  for(auto& ind : m_population){
-    delete ind;
+  for(auto& indv : m_population){
+    delete indv;
+  }
+
+  for(auto& indv : m_last_population){
+    delete indv;
   }
 
   delete m_signal_chain;
@@ -196,6 +203,7 @@ void GA::evolve()
   std::cout << "-- Generation 0 of " <<  m_generation_max << " ..." << std::endl;
   m_generation = 0;
   m_population.resize(m_population_size);
+  m_last_population.resize(m_population_size);
 
   for (unsigned int i=0; i<m_population_size; i++){
     m_population[i] = new Individual();
@@ -227,26 +235,6 @@ void GA::evolve()
   std::cout << "-- Doing some plots..." << std::endl;
   plots();
 
-}
-
-bool GA::check_end_condition()
-{
-  // do at least one evolution
-  if (m_generation < 1)
-    return true;
-
-  // max number of generations
-  if (m_generation > m_generation_max)
-    return false;
-
-  // significance above number
-  if (m_opt_significance_target > 0 && m_population[0]->get_fitness() > m_opt_significance_target)
-    return false;
-
-  // stall generation
-
-
-  return true;
 }
 
 void GA::step()
@@ -289,6 +277,39 @@ void GA::step()
   output.close();
 }
 
+bool GA::check_end_condition()
+{
+  // do at least one evolution
+  if (m_generation < 1)
+    return true;
+
+  // two following generations with best Z=0
+  if (m_population[0]->get_fitness() < ZERO && m_last_population[0]->get_fitness() < ZERO) {
+    std::cout << "-- End because two following generations have Z=0. Check initial conditions" << std::endl;
+    return false;
+  }
+
+  // max number of generations
+  if (m_generation > m_generation_max) {
+    std::cout << "-- End because we reached the maximum number of generations" << std::endl;
+    return false;
+  }
+
+  // significance above number
+  if (m_opt_significance_target > 0 && m_population[0]->get_fitness() > m_opt_significance_target) {
+    std::cout << "-- End because we reached the target significance" << std::endl;
+    return false;
+  }
+
+  // stall generation
+  if (m_stall_generation > 5) {
+    std::cout << "-- End because we reached a significance plateau" << std::endl;
+    return false;
+  }
+
+  return true;
+}
+
 void GA::evaluate_fitness()
 {
   // evaluate fitness for all individuals
@@ -306,6 +327,9 @@ void GA::evaluate_fitness()
 
   // sort individuals by fitness
   std::sort(m_population.begin(), m_population.end(), sort_fitness);
+
+  // check with last population
+
 
   g_gen.push_back(m_generation);
   g_best.push_back(m_population[0]->get_fitness());
@@ -368,6 +392,7 @@ void GA::mutate(pop_vector &v)
 
 void GA::update(pop_vector &v)
 {
+  m_last_population.swap(m_population);
   m_population.swap(v);
 }
 
