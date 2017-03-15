@@ -97,7 +97,7 @@ void GA::read_configuration(TString configfile)
   m_elitism_rate    = env.GetValue("GA.RateElitism", 0.0);
 
   // Fitness options
-  m_opt_type = env.GetValue("Opt.SignificanceType", "ExpZ"); // SB or ExpZ
+  m_opt_type = env.GetValue("Opt.SignificanceType", 3);
   m_opt_significance_target = env.GetValue("Opt.SignificanceTarget", -1.0);
   m_opt_background_syst = env.GetValue("Opt.BackgroundSystUnc", 0.01);
   m_opt_background_min  = env.GetValue("Opt.BackgroundMin", 0.0);
@@ -160,10 +160,10 @@ void GA::print_configuration()
   // Signal
   std::cout << "-----------" << std::endl;
   for (auto signal_file : m_signal_files)
-    std::cout << "Input.SignalFile:         " << signal_file << std::endl;
+    std::cout << "Input.SignalFile:     " << signal_file << std::endl;
   std::cout << "Input.SignalTree:     " << m_signal_treename << std::endl;
   for (auto bkg_file : m_background_files)
-    std::cout << "Input.BackgroundFile:     " << bkg_file << std::endl;
+    std::cout << "Input.BackgroundFile: " << bkg_file << std::endl;
   std::cout << "Input.BackgroundTree: " << m_background_treename << std::endl;
   std::cout << "-----------------------" << std::endl;
   std::cout << std::endl << std::endl;
@@ -188,26 +188,6 @@ void GA::print_configuration()
   //   m_variables.push_back(var);
   // }
 
-}
-
-bool GA::check_end_condition()
-{
-  // do at least one evolution
-  if (m_generation < 1)
-    return true;
-
-  // max number of generations
-  if (m_generation > m_generation_max)
-    return false;
-
-  // significance above number
-  if (m_opt_significance_target > 0 && m_population[0]->get_fitness() > m_opt_significance_target)
-    return false;
-
-  // stall generation
-
-
-  return true;
 }
 
 void GA::evolve()
@@ -247,6 +227,26 @@ void GA::evolve()
   std::cout << "-- Doing some plots..." << std::endl;
   plots();
 
+}
+
+bool GA::check_end_condition()
+{
+  // do at least one evolution
+  if (m_generation < 1)
+    return true;
+
+  // max number of generations
+  if (m_generation > m_generation_max)
+    return false;
+
+  // significance above number
+  if (m_opt_significance_target > 0 && m_population[0]->get_fitness() > m_opt_significance_target)
+    return false;
+
+  // stall generation
+
+
+  return true;
 }
 
 void GA::step()
@@ -411,10 +411,12 @@ double GA::evaluate_individual_fitness(Individual* indv)
   indv->set_background(b);
 
   double significance = 0.;
-  if (m_opt_type == "ExpZ")
+  if (m_opt_type == 1)
+    significance = get_s_over_b(s, b);
+  else if (m_opt_type == 2)
+    significance = get_s_over_total(s, b);
+  else if (m_opt_type == 3)
     significance = get_significance(s, b, m_opt_background_syst);
-  else if (m_opt_type == "SB")
-    significance = get_sb(s, b);
 
 
   if (s < ZERO || b < ZERO || b < m_opt_background_min || b > m_opt_background_max)

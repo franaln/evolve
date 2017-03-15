@@ -3,13 +3,15 @@
 
 #include "significance.h"
 
-
-double get_sb(double s, double b)
+// S/B or S/(S+B)
+double get_s_over_b(double s, double b)
 {
-  if (b > 0.)
-    return s/b;
+  return b>0. ? s/b : 0.;
+}
 
-  return 0.;
+double get_s_over_total(double s, double b)
+{
+  return (s+b)>0 ? s/(s+b) : 0.;
 }
 
 // Get significance taking into account
