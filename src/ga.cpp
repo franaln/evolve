@@ -52,7 +52,7 @@ GA::GA(TString configfile)
 
   hist_s   = new THnSparseD("hist_s", "Signal", m_nvars, bins, xmin, xmax);
   hist_b   = new THnSparseD("hist_b", "Background", m_nvars, bins, xmin, xmax);
-  hist_sig = new THnSparseD("hist_sig", "Significance", m_nvars, bins, xmin, xmax);
+  hist_z = new THnSparseD("hist_z", "Significance", m_nvars, bins, xmin, xmax);
 
 }
 
@@ -105,11 +105,11 @@ void GA::read_configuration(TString configfile)
   m_opt_efficiency_min  = env.GetValue("Opt.EfficiencyMin", 0.0);
 
   // Files/Trees
-  m_signal_files = split_string(env.GetValue("File.Signal", ""));
-  m_signal_treename = env.GetValue("File.SignalTree", "");
+  m_signal_files = split_string(env.GetValue("Input.SignalFile", ""));
+  m_signal_treename = env.GetValue("Input.SignalTree", "");
 
-  m_background_files = split_string(env.GetValue("File.Background", ""));
-  m_background_treename = env.GetValue("File.BackgroundTree", "");
+  m_background_files = split_string(env.GetValue("Input.BackgroundFile", ""));
+  m_background_treename = env.GetValue("Input.BackgroundTree", "");
 
 
   // Variables
@@ -137,8 +137,8 @@ void GA::read_configuration(TString configfile)
 void GA::print_configuration()
 {
 
-  std::cout << std::endl;
-  std::cout << "------------------" << std::endl;
+  std::cout << std::endl << std::endl;
+  std::cout << "-----------------------" << std::endl;
   std::cout << "-- Configuration" << std::endl;
   std::cout << "AnalysisName: " << m_name << std::endl;
 
@@ -148,7 +148,7 @@ void GA::print_configuration()
   std::cout << "GA.GenerationMax: "  << m_generation_max  << std::endl;
   std::cout << "GA.ProbMutation: "   << m_prob_mutation   << std::endl;
   std::cout << "GA.ProbCrossOver: "  << m_prob_crossover  << std::endl;
-  std::cout << "GA.RateElitism: "     << m_elitism_rate    << std::endl;
+  std::cout << "GA.RateElitism: "    << m_elitism_rate    << std::endl;
 
   // Fitness options
   std::cout << "-----------" << std::endl;
@@ -160,13 +160,12 @@ void GA::print_configuration()
   // Signal
   std::cout << "-----------" << std::endl;
   for (auto signal_file : m_signal_files)
-    std::cout << "File.Signal:         " << signal_file << std::endl;
-  std::cout << "File.SignalTree:     " << m_signal_treename << std::endl;
+    std::cout << "Input.SignalFile:         " << signal_file << std::endl;
+  std::cout << "Input.SignalTree:     " << m_signal_treename << std::endl;
   for (auto bkg_file : m_background_files)
-    std::cout << "File.Background:     " << bkg_file << std::endl;
-  std::cout << "File.BackgroundTree: " << m_background_treename << std::endl;
-  std::cout << "-----------" << std::endl;
-  std::cout << "------------------" << std::endl;
+    std::cout << "Input.BackgroundFile:     " << bkg_file << std::endl;
+  std::cout << "Input.BackgroundTree: " << m_background_treename << std::endl;
+  std::cout << "-----------------------" << std::endl;
   std::cout << std::endl << std::endl;
 
   // Variables
@@ -242,7 +241,7 @@ void GA::evolve()
   for (auto &var : m_variables) {
     total_calc *= var.bins;
   }
-  std::cout << "-- Number of calculations = " << hist_sig->GetNbins() << " of " << total_calc << std::endl;
+  std::cout << "-- Number of calculations = " << hist_z->GetNbins() << " of " << total_calc << std::endl;
 
   // make plots
   std::cout << "-- Doing some plots..." << std::endl;
@@ -377,20 +376,20 @@ double GA::evaluate_individual_fitness(Individual* indv)
   double* cuts = indv->get_cuts();
 
   // if it is already calculated, return significance from histogram
-  long bin_sig = hist_sig->GetBin(cuts, false);
-  if (bin_sig >= 0) {
+  long bin_z = hist_z->GetBin(cuts, false);
+  if (bin_z >= 0) {
 
-    double s = hist_s->GetBinContent(bin_sig);
+    double s = hist_s->GetBinContent(bin_z);
     indv->set_signal(s);
 
-    double b = hist_b->GetBinContent(bin_sig);
+    double b = hist_b->GetBinContent(bin_z);
     indv->set_background(b);
 
     double significance = 0.;
     if (s < ZERO || b < ZERO || b < m_opt_background_min || b > m_opt_background_max)
       significance = 0.;
     else
-      significance = hist_sig->GetBinContent(bin_sig);
+      significance = hist_z->GetBinContent(bin_z);
 
     indv->set_fitness(significance);
 
@@ -423,7 +422,7 @@ double GA::evaluate_individual_fitness(Individual* indv)
 
   hist_s->SetBinContent(hist_s->GetBin(cuts), s);
   hist_b->SetBinContent(hist_b->GetBin(cuts), b);
-  hist_sig->SetBinContent(hist_sig->GetBin(cuts), significance);
+  hist_z->SetBinContent(hist_z->GetBin(cuts), significance);
 
   indv->set_fitness(significance);
 
@@ -524,7 +523,7 @@ void GA::save_histograms()
 
   hist_s->Write("signal");
   hist_b->Write("background");
-  hist_sig->Write("significance");
+  hist_z->Write("significance");
 
   f.Close();
 }

@@ -60,7 +60,7 @@ class GA {
 
   double m_total_fitness;
   TChain *m_signal_chain, *m_background_chain;
-  THnSparseD *hist_s, *hist_b, *hist_sig;
+  THnSparseD *hist_s, *hist_b, *hist_z;
   std::vector<double> g_gen, g_best, g_mean;
   std::ofstream output;
 
