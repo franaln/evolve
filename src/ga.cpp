@@ -264,7 +264,7 @@ void GA::step()
   // mutation
   mutate(children);
 
-  // update population
+  // update population and save last population
   update(children);
 
   // evaluate fitness and sort
@@ -328,9 +328,20 @@ void GA::evaluate_fitness()
   // sort individuals by fitness
   std::sort(m_population.begin(), m_population.end(), sort_fitness);
 
-  // check with last population
+  // check if evolution stuck
+  if (m_generation > 1) {
+    int same_first_fitness = 0;
+    for (int indv_idx=0; indv_idx<5; indv_idx++) {
+      if ( fabs(m_population[indv_idx]->get_fitness() - m_last_population[indv_idx]->get_fitness()) < ZERO )
+        same_first_fitness += 1;
+    }
+    if (same_first_fitness > 4)
+      m_stall_generation += 1;
+    else
+      m_stall_generation = 0;
+  }
 
-
+  // save for fitness vs generation plot
   g_gen.push_back(m_generation);
   g_best.push_back(m_population[0]->get_fitness());
   g_mean.push_back(m_total_fitness/m_population_size);
@@ -504,7 +515,7 @@ void GA::show_best()
     std::cout << m_population[0]->get_cut(i) << " | ";
   }
   std::cout << "S/B = " <<  m_population[0]->get_signal() << "/" << m_population[0]->get_background();
-  std::cout << ", Z = " << m_population[0]->get_fitness() << std::endl;
+  std::cout << ", Z = " << m_population[0]->get_fitness() << " " << std::endl;
 
 }
 
