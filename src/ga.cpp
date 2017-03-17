@@ -231,9 +231,12 @@ void GA::evolve()
   }
   std::cout << "-- Number of calculations = " << hist_z->GetNbins() << " of " << total_calc << std::endl;
 
+  output.close();
+
   // make plots
   std::cout << "-- Doing some plots..." << std::endl;
   plots();
+
 
 }
 
@@ -274,7 +277,6 @@ void GA::step()
   log();
 
   save_histograms();
-  output.close();
 }
 
 bool GA::check_end_condition()
