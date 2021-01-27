@@ -1,6 +1,9 @@
 evolve
 ======
 
+Optimization of new physics searches (in terms of signal/background significance) using a Genetic Algorithm. 
+
+This tool was done as a project for a PhD computing course, and was tested in the SUSY to photon + jets + MET analysis in the ATLAS experiment using Run2 data.
 
 To run the example you need to download the following file:
 
